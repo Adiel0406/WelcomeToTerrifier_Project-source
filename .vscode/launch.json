@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Ejecutar SFML",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/sfml_app",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "Compilar SFML"
+        }
+    ]
+}
