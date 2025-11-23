@@ -52,25 +52,39 @@ int main() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
             movement.y -= velocidad;
             player.setTexture(texDown);
-            lightDir = sf::Vector2f(0, 1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
             movement.y += velocidad;
             player.setTexture(texDown);
-            lightDir = sf::Vector2f(0, -1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
             movement.x -= velocidad;
             player.setTexture(texLeft);
-            lightDir = sf::Vector2f(-1, 0);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             movement.x += velocidad;
             player.setTexture(texRight);
-            lightDir = sf::Vector2f(1, 0);
         }
 
         player.move(movement);
+
+        //---------------------------------------------
+        //          DIRECCION DE LUZ CON MOUSE
+        //---------------------------------------------
+         // Obtener posición del mouse en coordenadas del mundo
+        sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+        sf::Vector2f mouseWorldPos = window.mapPixelToCoords(mousePixelPos, view);
+        
+        // Calcular dirección desde el jugador hacia el mouse
+        sf::Vector2f playerPos = player.getPosition();
+        lightDir = mouseWorldPos - playerPos;
+        
+        // Normalizar la dirección (IMPORTANTE para el shader)
+        float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
+        if (length != 0) {
+            lightDir.x /= length;
+            lightDir.y /= length;
+        }
 
         //---------------------------------------------
         //                UPDATE CAMARA
