@@ -53,22 +53,18 @@ int main() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
             movement.y -= velocidad;
             player.setTexture(texUp);
-            lightDir = sf::Vector2f(0, 1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
             movement.y += velocidad;
             player.setTexture(texDown);
-            lightDir = sf::Vector2f(0, -1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
             movement.x -= velocidad;
             player.setTexture(texLeft);
-            lightDir = sf::Vector2f(-1, 0);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             movement.x += velocidad;
             player.setTexture(texRight);
-            lightDir = sf::Vector2f(1, 0);
         }
 
         player.move(movement);
