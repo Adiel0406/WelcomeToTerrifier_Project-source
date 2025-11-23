@@ -6,10 +6,11 @@ int main() {
     window.setFramerateLimit(60);
 
     // TEXTURAS DEL PERSONAJE
-    sf::Texture texDown, texLeft, texRight;
-    texDown.loadFromFile("assets/sprites/sienna_sprites/sienna_down.png");
-    texLeft.loadFromFile("assets/sprites/sienna_sprites/sienna_left.png");
-    texRight.loadFromFile("assets/sprites/sienna_sprites/sienna_right.png");
+    sf::Texture texDown, texLeft, texRight, texUp;
+    texDown.loadFromFile("assets/sprites/sienna_sprites/IdleDown.png");
+    texLeft.loadFromFile("assets/sprites/sienna_sprites/IdleLeft.png");
+    texRight.loadFromFile("assets/sprites/sienna_sprites/IdleRight.png");
+    texUp.loadFromFile("assets/sprites/sienna_sprites/IdleUp.png");
 
     sf::Sprite player;
     player.setTexture(texDown);
@@ -51,19 +52,23 @@ int main() {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
             movement.y -= velocidad;
-            player.setTexture(texDown);
+            player.setTexture(texUp);
+            lightDir = sf::Vector2f(0, 1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
             movement.y += velocidad;
             player.setTexture(texDown);
+            lightDir = sf::Vector2f(0, -1);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
             movement.x -= velocidad;
             player.setTexture(texLeft);
+            lightDir = sf::Vector2f(-1, 0);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             movement.x += velocidad;
             player.setTexture(texRight);
+            lightDir = sf::Vector2f(1, 0);
         }
 
         player.move(movement);
