@@ -27,7 +27,7 @@ int main() {
 
     //OBJETOS: crear spawner dentro de los límites del mapa (con margen)
     sf::FloatRect mapBounds = map.getGlobalBounds();
-    const int margin = 50; // margen desde bordes del mapa
+    const int margin = 25; // margen desde bordes del mapa (reducido para spawn un poco más grande)
     int minX = static_cast<int>(mapBounds.left) + margin;
     int maxX = static_cast<int>(mapBounds.left + mapBounds.width) - margin;
     int minY = static_cast<int>(mapBounds.top) + margin;
@@ -39,9 +39,9 @@ int main() {
     auto loadOrPlaceholder = [&](const std::string &path)->sf::Texture {
         sf::Texture t;
         if (t.loadFromFile(path)) return t;
-        // fallback: simple magenta placeholder
+        // fallback: textura transparente (evita el cuadrado magenta)
         sf::Image img;
-        img.create(32,32,sf::Color(255,0,255));
+        img.create(32,32,sf::Color(0,0,0,0));
         t.loadFromImage(img);
         return t;
     };
