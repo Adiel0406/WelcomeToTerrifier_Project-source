@@ -25,19 +25,36 @@ int main() {
     texRight.loadFromFile("assets/sprites/sienna_sprites/IdleRight.png");
     texUp.loadFromFile("assets/sprites/sienna_sprites/IdleUp.png");
 
-    //OBJETOS
-    ObjectSpawner spawner(1500, 2500, 1500, 2500);
+    //OBJETOS: crear spawner dentro de los límites del mapa (con margen)
+    sf::FloatRect mapBounds = map.getGlobalBounds();
+    const int margin = 50; // margen desde bordes del mapa
+    int minX = static_cast<int>(mapBounds.left) + margin;
+    int maxX = static_cast<int>(mapBounds.left + mapBounds.width) - margin;
+    int minY = static_cast<int>(mapBounds.top) + margin;
+    int maxY = static_cast<int>(mapBounds.top + mapBounds.height) - margin;
+    ObjectSpawner spawner(minX, maxX, minY, maxY);
     auto objetos = spawner.generarObjetos();
     std::map<std::string, sf::Texture> texturas;
 
-    texturas["LlaveA"].loadFromFile("assets/sprites/items_sprites/llave_mansion.png");
-    texturas["LlaveB"].loadFromFile("assets/sprites/items_sprites/llave_cristal.png");
-    texturas["LlaveC"].loadFromFile("assets/sprites/items_sprites/llave.png");
-    texturas["Palanca"].loadFromFile("assets/sprites/items_sprites/palanca.png");
+    auto loadOrPlaceholder = [&](const std::string &path)->sf::Texture {
+        sf::Texture t;
+        if (t.loadFromFile(path)) return t;
+        // fallback: simple magenta placeholder
+        sf::Image img;
+        img.create(32,32,sf::Color(255,0,255));
+        t.loadFromImage(img);
+        return t;
+    };
+
+    texturas["LlaveA"] = loadOrPlaceholder("assets/sprites/items_sprites/llave_mansion.png");
+    texturas["LlaveB"] = loadOrPlaceholder("assets/sprites/items_sprites/llave_cristal.png");
+    texturas["LlaveC"] = loadOrPlaceholder("assets/sprites/items_sprites/llave.png");
+    texturas["Palanca"] = loadOrPlaceholder("assets/sprites/items_sprites/palanca.png");
 
     for(int i=1;i<=11;i++){
-        texturas["Objeto"+std::to_string(i)]
-            .loadFromFile("assets/sprites/items_sprites/obj"+std::to_string(i)+".png");
+        std::string key = "Objeto" + std::to_string(i);
+        std::string path = "assets/sprites/items_sprites/obj" + std::to_string(i) + ".png";
+        texturas[key] = loadOrPlaceholder(path);
     }
 
     //---------------------------
@@ -242,7 +259,7 @@ int main() {
         flashlight.setUniform("lightDir", lightDir);
         flashlight.setUniform("lightRadius", lightRadius);
         flashlight.setUniform("innerRadius", innerRadius);
-        flashlight.setUniform("resolution", sf::Vector2f(window.getSize()));
+        flashlight.setUniform("resolution", sf::Glsl::Vec2((float)window.getSize().x, (float)window.getSize().y));
 
         //---------------------------------------------
         //              DRAW
