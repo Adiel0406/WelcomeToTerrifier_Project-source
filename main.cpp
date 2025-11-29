@@ -1,9 +1,18 @@
 #include <SFML/Graphics.hpp>
+#include <cmath>
+#include "brenett.h"
 
 int main() {
 
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Movimiento + Linterna");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Movimiento + Linterna");
     window.setFramerateLimit(60);
+    
+    // Mapa
+    sf::Texture mapyay; 
+    mapyay.loadFromFile("assets/sprites/map.png");
+    sf::Sprite map;
+    map.setTexture(mapyay);
+    map.setPosition(300, 200);
 
     // TEXTURAS DEL PERSONAJE
     sf::Texture texDown, texLeft, texRight, texUp;
@@ -23,11 +32,11 @@ int main() {
     //                 SHADER DE LUZ
     //---------------------------------------------
     sf::Shader flashlight;
-    flashlight.loadFromFile("light.frag", sf::Shader::Fragment);
+    flashlight.loadFromFile("assets/shaders/light.frag", sf::Shader::Fragment);
 
     float lightRadius = 250.f;   // RADIO DE LUZ
     float innerRadius = 60.f;    // TOLERANCIA (zona sin sombra alrededor del jugador)
-    sf::Vector2f lightDir(0.f, 1.f); // Dirección (cambia con WASD)
+    sf::Vector2f lightDir(0.f, 0.f); // Dirección (cambia con WASD)
 
     //---------------------------------------------
     //                  VIEW (camara)
@@ -78,7 +87,8 @@ int main() {
         
         // Calcular dirección desde el jugador hacia el mouse
         sf::Vector2f playerPos = player.getPosition();
-        lightDir = mouseWorldPos - playerPos;
+        lightDir.x = mouseWorldPos.x - playerPos.x;
+        lightDir.y = -(mouseWorldPos.y - playerPos.y);
         
         // Normalizar la dirección (IMPORTANTE para el shader)
         float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
@@ -109,8 +119,18 @@ int main() {
         sf::RectangleShape screen(sf::Vector2f(window.getSize()));
         screen.setFillColor(sf::Color::Black);
 
+        //--------------------------------------------
+        //            COLLISION
+        //--------------------------------------------
+        sf::RectangleShape rec1;
+        rec1.setSize(sf::Vector2f(1500,10));
+        rec1.setPosition(sf::Vector2f(300,150));
+        
+
         window.clear();
+        window.draw(map);
         window.draw(screen, &flashlight);
+        window.draw(rec1);
         window.draw(player);
         window.display();
     }
