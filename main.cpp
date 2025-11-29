@@ -272,14 +272,22 @@ int main() {
         //            COLLISION
         //--------------------------------------------
         sf::RectangleShape rec1;
-        rec1.setSize(sf::Vector2f(1500,10));
-        rec1.setPosition(sf::Vector2f(300,150));
+        rec1.setSize(sf::Vector2f(1500,100));
+        rec1.setPosition(300,400);
         
+        sf::CircleShape c1;
+        c1.setRadius(20.0);
+        c1.setOrigin(20,20);
+        c1.setPosition(sf::Vector2f(player.getPosition().x,player.getPosition().y));
+        c1.setFillColor(sf::Color::White);
+
+        std::cout<< checker(rec1,c1) <<std::endl;
 
         window.clear();
         window.draw(map);
         window.draw(screen, &flashlight);
         window.draw(rec1);
+        window.draw(c1);
         window.draw(player);
         for(auto& o : objetos){
             window.draw(o.sprite);
