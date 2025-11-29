@@ -1,7 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <vector>
+#include <map>
 #include "brenett.h"
+#include "adiel.h"
 #include <iostream>
 
 int main() {
@@ -22,6 +24,29 @@ int main() {
     texLeft.loadFromFile("assets/sprites/sienna_sprites/IdleLeft.png");
     texRight.loadFromFile("assets/sprites/sienna_sprites/IdleRight.png");
     texUp.loadFromFile("assets/sprites/sienna_sprites/IdleUp.png");
+
+    //OBJETOS
+    ObjectSpawner spawner(1500, 2500, 1500, 2500);
+    auto objetos = spawner.generarObjetos();
+    std::map<std::string, sf::Texture> texturas;
+
+    texturas["LlaveA"].loadFromFile("assets/sprites/items_sprites/llave_mansion.png");
+    texturas["LlaveB"].loadFromFile("assets/sprites/items_sprites/llave_cristal.png");
+    texturas["LlaveC"].loadFromFile("assets/sprites/items_sprites/llave.png");
+    texturas["Palanca"].loadFromFile("assets/sprites/items_sprites/palanca.png");
+
+    for(int i=1;i<=11;i++){
+        texturas["Objeto"+std::to_string(i)]
+            .loadFromFile("assets/sprites/items_sprites/obj"+std::to_string(i)+".png");
+    }
+
+    //---------------------------
+    // ASOCIAR SPRITES
+    //---------------------------
+    for(auto& o : objetos){
+        o.sprite.setTexture(texturas[o.nombre]);
+        o.sprite.setPosition(o.x, o.y);
+    }
 
     std::vector<sf::Texture>walkDown(4);
     walkDown[0].loadFromFile("assets/sprites/sienna_sprites/WalkDown1.png");
@@ -86,6 +111,12 @@ int main() {
     while (window.isOpen()) {
         sf::Event event;
         float dt = clock.restart().asSeconds();
+
+        sf::Event ev;
+        while(window.pollEvent(ev)){
+            if(ev.type == sf::Event::Closed)
+                window.close();
+        }
 
         sf::Vector2f movement(0.f, 0.f);
         bool moving = false;
@@ -233,6 +264,9 @@ int main() {
         window.draw(screen, &flashlight);
         window.draw(rec1);
         window.draw(player);
+        for(auto& o : objetos){
+            window.draw(o.sprite);
+        }
         window.display();
     }
 
