@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include "brenett.h"
+#include <iostream>
 
 int main() {
 
@@ -158,19 +159,20 @@ int main() {
         // Interpolar velocity hacia targetVel por componentes
         // X
         if (velocity.x < targetVel.x) {
-            velocity.x += accel * dt;
-            if (velocity.x > targetVel.x) velocity.x = targetVel.x;
+            velocity.x += accel;
+            if (velocity.x > targetVel.x){ velocity.x = targetVel.x;std::cout << "00!\n";}
         } else if (velocity.x > targetVel.x) {
-            velocity.x -= decel * dt;
-            if (velocity.x < targetVel.x) velocity.x = targetVel.x;
+            velocity.x -= decel;
+            if (velocity.x < targetVel.x){ velocity.x = targetVel.x;std::cout << "00!\n";}
         }
         // Y
         if (velocity.y < targetVel.y) {
-            velocity.y += accel * dt;
-            if (velocity.y > targetVel.y) velocity.y = targetVel.y;
+            velocity.y += accel;
+            if (velocity.y > targetVel.y){velocity.y = targetVel.y;std::cout << "00!\n";} 
+            
         } else if (velocity.y > targetVel.y) {
-            velocity.y -= decel * dt;
-            if (velocity.y < targetVel.y) velocity.y = targetVel.y;
+            velocity.y -= decel;
+            if (velocity.y < targetVel.y){ velocity.y = targetVel.y;std::cout << "00!\n";}
         }
 
         // Movimiento final (aplica dt)
