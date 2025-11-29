@@ -160,19 +160,19 @@ int main() {
         // X
         if (velocity.x < targetVel.x) {
             velocity.x += accel;
-            if (velocity.x > targetVel.x){ velocity.x = targetVel.x;std::cout << "00!\n";}
+            if (velocity.x > targetVel.x){ velocity.x = targetVel.x;}
         } else if (velocity.x > targetVel.x) {
             velocity.x -= decel;
-            if (velocity.x < targetVel.x){ velocity.x = targetVel.x;std::cout << "00!\n";}
+            if (velocity.x < targetVel.x){ velocity.x = targetVel.x;}
         }
         // Y
         if (velocity.y < targetVel.y) {
             velocity.y += accel;
-            if (velocity.y > targetVel.y){velocity.y = targetVel.y;std::cout << "00!\n";} 
+            if (velocity.y > targetVel.y){velocity.y = targetVel.y;} 
             
         } else if (velocity.y > targetVel.y) {
             velocity.y -= decel;
-            if (velocity.y < targetVel.y){ velocity.y = targetVel.y;std::cout << "00!\n";}
+            if (velocity.y < targetVel.y){ velocity.y = targetVel.y;}
         }
 
         // Movimiento final (aplica dt)
