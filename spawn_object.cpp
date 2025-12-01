@@ -5,7 +5,7 @@
 #include <algorithm>
 
 // El mapa en main.cpp se coloca en (300,200). Las zonas siguientes están
-// definidas en coordenadas de imagen del mapa (0..1500, 0..2500).
+// definidas en coordenadas de imagen del mapa (0.1500, 0.2500).
 // Convertimos esas zonas a coordenadas del mundo sumando el offset.
 static const int MAP_OFFSET_X = 300;
 static const int MAP_OFFSET_Y = 200;

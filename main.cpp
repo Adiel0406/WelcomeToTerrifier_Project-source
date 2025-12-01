@@ -16,6 +16,8 @@ int main() {
     mapyay.loadFromFile("assets/sprites/map.png");
     sf::Sprite map;
     map.setTexture(mapyay);
+    // Aplicar un tinte leve frío para sensación nocturna
+    map.setColor(sf::Color(180, 185, 220));
     map.setPosition(300, 200);
 
     // TEXTURAS DEL PERSONAJE
@@ -264,9 +266,11 @@ int main() {
         //---------------------------------------------
         //              DRAW
         //---------------------------------------------
-        // Fondo oscuro
-        sf::RectangleShape screen(sf::Vector2f(window.getSize()));
-        screen.setFillColor(sf::Color::Black);
+        // Fondo nocturno: overlay semitransparente que cubre solo el mapa
+        sf::FloatRect mb = map.getGlobalBounds();
+        sf::RectangleShape screen(sf::Vector2f(mb.width, mb.height));
+        screen.setPosition(mb.left, mb.top);
+        screen.setFillColor(sf::Color(0, 0, 0, 200));
 
         //--------------------------------------------
         //            COLLISION
@@ -285,7 +289,8 @@ int main() {
 
         window.clear();
         window.draw(map);
-        window.draw(screen, &flashlight);
+        // Dibujar overlay oscuro solo sobre el área del mapa
+        window.draw(screen);
         window.draw(rec1);
         window.draw(c1);
         window.draw(player);
