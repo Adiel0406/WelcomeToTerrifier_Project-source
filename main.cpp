@@ -163,7 +163,7 @@ int main() {
 
     sf::Sprite player;
     player.setTexture(texDown);
-    player.setPosition(300, 200);
+    player.setPosition(400.f, 1450.f);
 
     int currentFrame = 0;
     float frameTime = 0.15f;  // cambio cada 150ms
