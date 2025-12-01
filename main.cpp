@@ -361,6 +361,7 @@ int main() {
         window.draw(map);
         // Dibujar overlay oscuro solo sobre el área del mapa
         window.draw(screen);
+        window.draw(screen, &flashlight);
         window.draw(rec1);
         window.draw(c1);
         window.draw(player);
