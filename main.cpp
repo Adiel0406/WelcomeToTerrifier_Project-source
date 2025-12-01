@@ -10,6 +10,76 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Movimiento + Linterna");
     window.setFramerateLimit(60);
+
+    // --- MENÚ PRINCIPAL ---
+    sf::Font menuFont;
+    if (!menuFont.loadFromFile("assets/fonts/karmatic_arcade.ttf")) {
+        // fallback: intentar otra fuente
+        menuFont.loadFromFile("assets/fonts/fs-pixel-sans-unicode-regular.ttf");
+    }
+
+    bool inMenu = true;
+    while (inMenu) {
+        sf::Event me;
+        while (window.pollEvent(me)) {
+            if (me.type == sf::Event::Closed) return 0;
+        }
+
+        window.clear(sf::Color(20,20,30));
+
+        // Título
+        sf::Text title("Welcome to Terrifier", menuFont, 48);
+        title.setFillColor(sf::Color::White);
+        title.setStyle(sf::Text::Bold);
+        title.setPosition((1280 - title.getLocalBounds().width) / 2.f, 140.f);
+        window.draw(title);
+
+        // Botones
+        sf::Vector2f btnSize(300.f, 70.f);
+        sf::RectangleShape playBtn(btnSize);
+        playBtn.setOrigin(btnSize.x/2, btnSize.y/2);
+        playBtn.setPosition(1280/2.f, 300.f);
+        playBtn.setFillColor(sf::Color(80,80,140));
+
+        sf::RectangleShape exitBtn(btnSize);
+        exitBtn.setOrigin(btnSize.x/2, btnSize.y/2);
+        exitBtn.setPosition(1280/2.f, 400.f);
+        exitBtn.setFillColor(sf::Color(140,80,80));
+
+        // Textos de botones
+        sf::Text playText("Jugar", menuFont, 30);
+        playText.setFillColor(sf::Color::White);
+        playText.setPosition(playBtn.getPosition().x - playText.getLocalBounds().width/2.f - 5.f,
+                             playBtn.getPosition().y - playText.getLocalBounds().height/2.f - 10.f);
+
+        sf::Text exitText("Salir", menuFont, 30);
+        exitText.setFillColor(sf::Color::White);
+        exitText.setPosition(exitBtn.getPosition().x - exitText.getLocalBounds().width/2.f - 5.f,
+                             exitBtn.getPosition().y - exitText.getLocalBounds().height/2.f - 10.f);
+
+        // Hover effect
+        sf::Vector2i mp = sf::Mouse::getPosition(window);
+        sf::Vector2f mposf = window.mapPixelToCoords(mp);
+        if (playBtn.getGlobalBounds().contains(mposf)) playBtn.setFillColor(sf::Color(120,120,200));
+        if (exitBtn.getGlobalBounds().contains(mposf)) exitBtn.setFillColor(sf::Color(200,120,120));
+
+        // Click handling
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+            if (playBtn.getGlobalBounds().contains(mposf)) {
+                inMenu = false; // iniciar juego
+            }
+            if (exitBtn.getGlobalBounds().contains(mposf)) {
+                return 0; // salir
+            }
+        }
+
+        window.draw(playBtn);
+        window.draw(exitBtn);
+        window.draw(playText);
+        window.draw(exitText);
+
+        window.display();
+    }
     
     // Mapa
     sf::Texture mapyay; 

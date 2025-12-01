@@ -63,7 +63,7 @@ std::vector<Objeto> ObjectSpawner::generarObjetos() {
             
             if (inRoom || inZona) continue;
             
-            // Verificar minSpacing con otros objetos
+            // Verificar espacio con otros objetos
             int minSq = minSpacing * minSpacing;
             bool tooClose = false;
             for (auto &o : lista) {
