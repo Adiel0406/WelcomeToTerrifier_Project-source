@@ -1,13 +1,13 @@
 #!/bin/zsh
 set -e
 
-SRC="main.cpp spawn_object.cpp"
+SRC="main.cpp spawn_object.cpp Art.cpp"
 OUT="main"
 
 # Si pkg-config está disponible y puede resolver sfml-all, úsalo (más portable)
 if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists sfml-all; then
   echo "Compilando con pkg-config..."
-  clang++ -std=c++17 -g main.cpp spawn_object.cpp -o "$OUT" $(pkg-config --cflags --libs sfml-all)
+  clang++ -std=c++17 -g main.cpp spawn_object.cpp Art.cpp -o "$OUT" $(pkg-config --cflags --libs sfml-all)
 else
   # Detectar Homebrew en Apple Silicon (/opt/homebrew) o Intel (/usr/local)
   if [ -d /opt/homebrew ]; then
@@ -18,7 +18,7 @@ else
     LIB='-L/usr/local/lib'
   fi
   echo "Compilando con includes: $INCL y libs: $LIB"
-  clang++ -std=c++17 -g main.cpp spawn_object.cpp -o "$OUT" $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system
+  clang++ -std=c++17 -g main.cpp spawn_object.cpp Art.cpp -o "$OUT" $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system
 fi
 
 echo "Compilación completada: ./$OUT"
