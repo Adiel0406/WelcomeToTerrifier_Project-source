@@ -64,5 +64,6 @@ void limitCam(sf::View &view, sf::Sprite &player, sf::FloatRect &mapBounds) {
         centerCam.y = mapBounds.top + (mapBounds.height / 2.0f);
     }
     
-    // Aplicar la posición limitadaL.setCenter(centerCam);
+    // Aplicar la posición limitada
+    view.setCenter(centerCam);
 }

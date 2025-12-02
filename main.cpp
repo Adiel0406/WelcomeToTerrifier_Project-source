@@ -4,7 +4,11 @@
 #include <map>
 #include "brenett.h"
 #include "adiel.h"
+#include "israel_collisions.hpp"
+#include "Art.h"
 #include <iostream>
+
+
 
 int main() {
 
@@ -89,6 +93,7 @@ int main() {
     // Aplicar un tinte leve frío para sensación nocturna
     map.setColor(sf::Color(180, 185, 220));
     map.setPosition(300, 200);
+    //sf::FloatRect mapBound = sf::FloatRect(0, 0, mapyay.getSize().x, mapyay.getSize().y); se repite abajo OOPS!!!
 
     // TEXTURAS DEL PERSONAJE
     sf::Texture texDown, texLeft, texRight, texUp;
@@ -123,7 +128,7 @@ int main() {
     texturas["LlaveC"] = loadOrPlaceholder("assets/sprites/items_sprites/llave.png");
     texturas["Palanca"] = loadOrPlaceholder("assets/sprites/items_sprites/palanca.png");
 
-    for(int i=1;i<=11;i++){
+    for(int i=1;i<=10;i++){
         std::string key = "Objeto" + std::to_string(i);
         std::string path = "assets/sprites/items_sprites/obj" + std::to_string(i) + ".png";
         texturas[key] = loadOrPlaceholder(path);
@@ -171,6 +176,54 @@ int main() {
 
     sf::FloatRect pb = player.getLocalBounds();
     player.setOrigin(pb.width / 2.f, pb.height / 2.f);
+
+    //---------------------------------------------
+    //                 IA ART
+    //---------------------------------------------
+    Art art(600.f, 800.f);  // Posición inicial de Art
+    
+    art.cargarSprites(
+        // Sprites QUIETOS (1 por dirección)
+        "assets/sprites/Art_Sprites/idleDown.png",
+        "assets/sprites/Art_Sprites/idleUp.png",
+        "assets/sprites/Art_Sprites/idleLeft.png",
+        "assets/sprites/Art_Sprites/idleRight.png",
+        
+        // Animación CAMINAR ABAJO (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkDown1.png",
+            "assets/sprites/Art_Sprites/WalkDown2.png",
+            "assets/sprites/Art_Sprites/WalkDown3.png",
+            "assets/sprites/Art_Sprites/WalkDown4.png"
+        },
+        
+        // Animación CAMINAR ARRIBA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkUp1.png",
+            "assets/sprites/Art_Sprites/WalkUp2.png",
+            "assets/sprites/Art_Sprites/WalkUp3.png",
+            "assets/sprites/Art_Sprites/WalkUp4.png"
+        },
+        
+        // Animación CAMINAR IZQUIERDA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkLeft1.png",
+            "assets/sprites/Art_Sprites/WalkLeft2.png",
+            "assets/sprites/Art_Sprites/WalkLeft3.png",
+            "assets/sprites/Art_Sprites/WalkLeft4.png"
+        },
+        
+        // Animación CAMINAR DERECHA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkRight1.png",
+            "assets/sprites/Art_Sprites/WalkRight2.png",
+            "assets/sprites/Art_Sprites/WalkRight3.png",
+            "assets/sprites/Art_Sprites/WalkRight4.png"
+        }
+    );
+
+    art.setVelocidad(180.0f);  // Un poco más lento que el jugador
+    art.setRangoDeteccion(400.0f);  // Rango de detección amplio
 
     //---------------------------------------------
     //                 SHADER DE LUZ
@@ -300,6 +353,12 @@ int main() {
         player.move(finalMovement);
 
         //---------------------------------------------
+        //          ACTUALIZAR IA ART
+        //---------------------------------------------
+        art.actualizar(dt, player.getPosition().x, player.getPosition().y);
+        window.draw(art.getSprite());
+
+        //---------------------------------------------
         //          DIRECCION DE LUZ CON MOUSE
         //---------------------------------------------
          // Obtener posición del mouse en coordenadas del mundo
@@ -321,8 +380,11 @@ int main() {
         //---------------------------------------------
         //                UPDATE CAMARA
         //---------------------------------------------
+        
         view.setCenter(player.getPosition());
+        limitCam(view,player,mapBounds);
         window.setView(view);
+        
 
         //---------------------------------------------
         //             UPDATE SHADER PARAMS
@@ -347,15 +409,14 @@ int main() {
         //--------------------------------------------
         sf::RectangleShape rec1;
         rec1.setSize(sf::Vector2f(1500,100));
-        rec1.setPosition(300,400);
+        rec1.setPosition(300,0);
         
-        sf::CircleShape c1;
-        c1.setRadius(20.0);
-        c1.setOrigin(20,20);
-        c1.setPosition(sf::Vector2f(player.getPosition().x,player.getPosition().y));
-        c1.setFillColor(sf::Color::White);
+        oc::Collider col;
+        col.setSize({32.f, 48.f});
+        col.setPosition(sf::Vector2f(player.getPosition().x,player.getPosition().y));
+        col.shape.setFillColor(sf::Color::Cyan);
 
-        std::cout<< checker(rec1,c1) <<std::endl;
+        //std::cout<< checker(rec1,c1) <<std::endl;
 
         window.clear();
         window.draw(map);
@@ -363,7 +424,7 @@ int main() {
         window.draw(screen);
         window.draw(screen, &flashlight);
         window.draw(rec1);
-        window.draw(c1);
+        col.draw(window);
         window.draw(player);
         for(auto& o : objetos){
             window.draw(o.sprite);
