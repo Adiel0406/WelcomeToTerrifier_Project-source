@@ -4,6 +4,7 @@
 #include <map>
 #include "brenett.h"
 #include "adiel.h"
+#include "Art.h"
 #include <iostream>
 
 int main() {
@@ -173,6 +174,56 @@ int main() {
     player.setOrigin(pb.width / 2.f, pb.height / 2.f);
 
     //---------------------------------------------
+    //                 IA ART
+    //---------------------------------------------
+    Art art(600.f, 800.f);  // Posición inicial de Art
+    
+    art.cargarSprites(
+        // Sprites QUIETOS (1 por dirección)
+        "assets/sprites/Art_Sprites/idleDown.png",
+        "assets/sprites/Art_Sprites/idleUp.png",
+        "assets/sprites/Art_Sprites/idleLeft.png",
+        "assets/sprites/Art_Sprites/idleRight.png",
+        
+        // Animación CAMINAR ABAJO (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkDown1.png",
+            "assets/sprites/Art_Sprites/WalkDown2.png",
+            "assets/sprites/Art_Sprites/WalkDown3.png",
+            "assets/sprites/Art_Sprites/WalkDown4.png"
+        },
+        
+        // Animación CAMINAR ARRIBA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkUp1.png",
+            "assets/sprites/Art_Sprites/WalkUp2.png",
+            "assets/sprites/Art_Sprites/WalkUp3.png",
+            "assets/sprites/Art_Sprites/WalkUp4.png"
+        },
+        
+        // Animación CAMINAR IZQUIERDA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkLeft1.png",
+            "assets/sprites/Art_Sprites/WalkLeft2.png",
+            "assets/sprites/Art_Sprites/WalkLeft3.png",
+            "assets/sprites/Art_Sprites/WalkLeft4.png"
+        },
+        
+        // Animación CAMINAR DERECHA (4 frames)
+        {
+            "assets/sprites/Art_Sprites/WalkRight1.png",
+            "assets/sprites/Art_Sprites/WalkRight2.png",
+            "assets/sprites/Art_Sprites/WalkRight3.png",
+            "assets/sprites/Art_Sprites/WalkRight4.png"
+        }
+    );
+
+    art.setVelocidad(180.0f);  // Un poco más lento que el jugador
+    art.setRangoDeteccion(400.0f);  // Rango de detección amplio
+
+
+
+    //---------------------------------------------
     //                 SHADER DE LUZ
     //---------------------------------------------
     sf::Shader flashlight;
@@ -279,25 +330,31 @@ int main() {
         // Interpolar velocity hacia targetVel por componentes
         // X
         if (velocity.x < targetVel.x) {
-            velocity.x += accel;
+            velocity.x += accel * dt;
             if (velocity.x > targetVel.x){ velocity.x = targetVel.x;}
         } else if (velocity.x > targetVel.x) {
-            velocity.x -= decel;
+            velocity.x -= decel * dt;
             if (velocity.x < targetVel.x){ velocity.x = targetVel.x;}
         }
         // Y
         if (velocity.y < targetVel.y) {
-            velocity.y += accel;
+            velocity.y += accel * dt;
             if (velocity.y > targetVel.y){velocity.y = targetVel.y;} 
             
         } else if (velocity.y > targetVel.y) {
-            velocity.y -= decel;
+            velocity.y -= decel * dt;
             if (velocity.y < targetVel.y){ velocity.y = targetVel.y;}
         }
 
         // Movimiento final (aplica dt)
         sf::Vector2f finalMovement = velocity * dt;
         player.move(finalMovement);
+
+        //---------------------------------------------
+        //          ACTUALIZAR IA ART
+        //---------------------------------------------
+        art.actualizar(dt, player.getPosition().x, player.getPosition().y);
+        window.draw(art.getSprite());
 
         //---------------------------------------------
         //          DIRECCION DE LUZ CON MOUSE
