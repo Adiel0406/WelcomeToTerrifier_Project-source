@@ -12,8 +12,14 @@
 
 int main() {
 
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Movimiento + Linterna");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Welcome to Terrifier (TEST VER.)");
     window.setFramerateLimit(60);
+
+    sf::RenderTexture lightMask;
+    if (!lightMask.create(window.getSize().x, window.getSize().y)) {
+        std::cerr << "Error creando render texture para la luz" << std::endl;
+    }
+    lightMask.setSmooth(true);
 
     // --- MENÚ PRINCIPAL ---
     sf::Font menuFont;
@@ -268,7 +274,11 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-
+        
+        oc::Collider col;
+        col.setSize({20.f, 40.f});
+        col.setPosition(sf::Vector2f(400, 1450));
+        col.shape.setFillColor(sf::Color::Cyan);
         //---------------------------------------------
         //           MOVIMIENTO + DIRECCION
         //---------------------------------------------
@@ -328,6 +338,8 @@ int main() {
 
         // Objetivo de velocidad
         sf::Vector2f targetVel = inputDir * (moving ? maxSpeed : 0.f);
+        col.velocity = velocity * dt;
+
 
         // Interpolar velocity hacia targetVel por componentes
         // X
@@ -368,7 +380,7 @@ int main() {
         // Calcular dirección desde el jugador hacia el mouse
         sf::Vector2f playerPos = player.getPosition();
         lightDir.x = mouseWorldPos.x - playerPos.x;
-        lightDir.y = -(mouseWorldPos.y - playerPos.y);
+        lightDir.y = (mouseWorldPos.y - playerPos.y);
         
         // Normalizar la dirección (IMPORTANTE para el shader)
         float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
@@ -389,11 +401,12 @@ int main() {
         //---------------------------------------------
         //             UPDATE SHADER PARAMS
         //---------------------------------------------
-        flashlight.setUniform("lightPos", player.getPosition());
+        sf::Vector2i playerScreenPos = window.mapCoordsToPixel(player.getPosition(), view);
+        flashlight.setUniform("lightPos", sf::Vector2f(playerScreenPos.x, window.getSize().y - playerScreenPos.y));
         flashlight.setUniform("lightDir", lightDir);
         flashlight.setUniform("lightRadius", lightRadius);
         flashlight.setUniform("innerRadius", innerRadius);
-        flashlight.setUniform("resolution", sf::Glsl::Vec2((float)window.getSize().x, (float)window.getSize().y));
+        flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
 
         //---------------------------------------------
         //              DRAW
@@ -410,25 +423,34 @@ int main() {
         sf::RectangleShape rec1;
         rec1.setSize(sf::Vector2f(1500,100));
         rec1.setPosition(300,0);
-        
-        oc::Collider col;
-        col.setSize({32.f, 48.f});
-        col.setPosition(sf::Vector2f(player.getPosition().x,player.getPosition().y));
-        col.shape.setFillColor(sf::Color::Cyan);
 
+        std::vector<sf::RectangleShape> obstaclesShapes;
+        std::vector<sf::FloatRect> obstaclesRects;
+        oc::resolveCollisionsAxisSeparated(col, obstaclesRects, dt);
         //std::cout<< checker(rec1,c1) <<std::endl;
+        
+
+        oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects);
+
 
         window.clear();
         window.draw(map);
         // Dibujar overlay oscuro solo sobre el área del mapa
         window.draw(screen);
-        window.draw(screen, &flashlight);
+        
         window.draw(rec1);
+        
+
+        // Dibujar colisiones
+        for (auto &s : obstaclesShapes) window.draw(s);
         col.draw(window);
         window.draw(player);
         for(auto& o : objetos){
             window.draw(o.sprite);
         }
+        
+
+        //window.draw(screen, &flashlight);
         window.display();
     }
 
