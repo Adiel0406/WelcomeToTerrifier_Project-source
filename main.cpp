@@ -368,7 +368,6 @@ int main() {
         //          ACTUALIZAR IA ART
         //---------------------------------------------
         art.actualizar(dt, player.getPosition().x, player.getPosition().y);
-        window.draw(art.getSprite());
 
         //---------------------------------------------
         //          DIRECCION DE LUZ CON MOUSE
@@ -445,12 +444,13 @@ int main() {
         for (auto &s : obstaclesShapes) window.draw(s);
         col.draw(window);
         window.draw(player);
+        window.draw(art.getSprite());
         for(auto& o : objetos){
             window.draw(o.sprite);
         }
         
 
-        //window.draw(screen, &flashlight);
+        window.draw(screen, &flashlight);
         window.display();
     }
 

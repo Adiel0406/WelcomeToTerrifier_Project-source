@@ -9,13 +9,13 @@ void main()
     // Convertir coordenadas de píxel a coordenadas del mundo
     // gl_FragCoord son coordenadas de ventana (0,0 a resolución)
     // Necesitamos convertirlas a coordenadas del mundo donde está el jugador
-    vec2 worldPos = vec2(gl_FragCoord.x, resolution.y - gl_FragCoord.y);
+    vec2 worldPos = vec2(resolution.x - gl_FragCoord.x, resolution.y - gl_FragCoord.y);
     
     float dist = distance(worldPos, lightPos);
 
     // Zona donde NO hay sombra (tolerancia alrededor del jugador)
     if (dist < innerRadius) {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); // Transparente completamente
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); // Transparente completamente
         return;
     }
 
