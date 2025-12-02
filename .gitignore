@@ -3,3 +3,4 @@
 *.aseprite
 /build
 *.exe
+/backups

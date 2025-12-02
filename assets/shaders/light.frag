@@ -12,7 +12,7 @@ void main()
 
     // zona donde NO hay sombra (tolerancia)
     if (dist < innerRadius) {
-        gl_FragColor = vec4(1.0);
+        gl_FragColor = vec4(0.0);
         return;
     }
 
