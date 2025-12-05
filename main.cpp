@@ -186,7 +186,7 @@ int main() {
     //---------------------------------------------
     //                 IA ART
     //---------------------------------------------
-    Art art(600.f, 800.f);  // Posición inicial de Art
+    Art art(150.f, 150.f);  // Posición inicial de Art
     
     art.cargarSprites(
         // Sprites QUIETOS (1 por dirección)
