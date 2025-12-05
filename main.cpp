@@ -176,7 +176,7 @@ int main() {
     //---------------------------------------------
     //                 IA ART
     //---------------------------------------------
-    Art art(600.f, 800.f);  // Posición inicial de Art
+    Art art(150.f, 150.f);  // Posición inicial de Art
     
     art.cargarSprites(
         // Sprites QUIETOS (1 por dirección)
@@ -422,6 +422,7 @@ int main() {
         window.draw(rec1);
         window.draw(c1);
         window.draw(player);
+        window.draw(art.getSprite());
         for(auto& o : objetos){
             window.draw(o.sprite);
         }

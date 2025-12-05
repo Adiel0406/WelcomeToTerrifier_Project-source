@@ -24,7 +24,7 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
     float diffY = playerY - y;
     float distancia = calcularDistancia(playerX, playerY);
     
-    // Actualizar dirección visual
+    // Actualizar dirección visual (que sprite usara)
     actualizarDireccion(diffX, diffY);
     
     // Comportamiento: perseguir si está en rango
@@ -46,15 +46,25 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
     // Actualizar posición del sprite
     sprite.setPosition(x, y);
 }
+//sin ella, art no se moveria ni animaria
 
 void Art::actualizarDireccion(float diffX, float diffY) {
     // Determinar dirección basada en el vector hacia el jugador
     if (std::abs(diffX) > std::abs(diffY)) {
-        direccionActual = (diffX > 0) ? DERECHA : IZQUIERDA;
+        if (diffX > 0) {
+            direccionActual = DERECHA;
+        } else {
+            direccionActual = IZQUIERDA;
+        }
     } else {
-        direccionActual = (diffY > 0) ? ABAJO : ARRIBA;
+        if (diffY > 0) {
+            direccionActual = ABAJO;
+        } else {
+            direccionActual = ARRIBA;
+        }
     }
 }
+//sin ella no funcionaria la animacion y la direccion (solo miraria hacia abajo)
 
 void Art::actualizarAnimacion(float deltaTime) {
     tiempoAnimacion += deltaTime;
@@ -63,7 +73,7 @@ void Art::actualizarAnimacion(float deltaTime) {
         // ANIMACIÓN CAMINAR
         if (tiempoAnimacion >= tiempoPorFrame) {
             // Seleccionar vector de texturas según dirección
-            std::vector<sf::Texture>* texturas = nullptr;
+            std::vector<sf::Texture>* texturas = nullptr;    //Permite cambiar a qué vector apunta según dirección (no apunta a nada inicialmente)
             
             switch (direccionActual) {
                 case ABAJO: texturas = &caminarAbajo; break;
@@ -74,8 +84,8 @@ void Art::actualizarAnimacion(float deltaTime) {
             
             // Si hay texturas, cambiar frame
             if (texturas && !texturas->empty()) {
-                frameActual = (frameActual + 1) % texturas->size();
-                sprite.setTexture((*texturas)[frameActual]);
+                frameActual = (frameActual + 1) % texturas->size(); // ciclo entre frames
+                sprite.setTexture((*texturas)[frameActual]); // actualizar textura del sprite
             }
             
             tiempoAnimacion = 0.0f;
@@ -102,12 +112,14 @@ void Art::actualizarAnimacion(float deltaTime) {
         }
     }
 }
+//sin ella, el tiempo no se acumularia y no habria cambio de frame o seria muy rapido, y puede llegarse a crashear si no hay texturas cargadas
 
-float Art::calcularDistancia(float px, float py) const {
+float Art::calcularDistancia(float px, float py) const { //al usar const no se puede modificar ningun atributo de la clase, solo lee
     float diffX = px - x;
     float diffY = py - y;
-    return std::sqrt(diffX * diffX + diffY * diffY);
+    return std::sqrt(diffX * diffX + diffY * diffY); //teorema de pitagoras (no se usa pow por eficiencia)
 }
+//sin ella no se podria calcular la distancia al jugador
 
 // ==================== CARGAR SPRITES ====================
 
@@ -154,12 +166,13 @@ void Art::cargarSprites(
     
     // Establecer sprite inicial
     sprite.setTexture(quietoAbajo);
-    sprite.setOrigin(sprite.getLocalBounds().width / 2.0f, 
-                     sprite.getLocalBounds().height / 2.0f);
+    sprite.setOrigin(sprite.getLocalBounds().width / 2.0f, sprite.getLocalBounds().height / 2.0f);
 }
+//sin ella no se podrian cargar las texturas desde archivos
 
-void Art::setPosicion(float nuevaX, float nuevaY) {
+void Art::setPosicion(float nuevaX, float nuevaY) {     //actualizar posición
     x = nuevaX;
     y = nuevaY;
-    sprite.setPosition(x, y);
+    sprite.setPosition(x, y);   //sincronizar sprite
 }
+//sin ella no se podria cambiar la posicion de art

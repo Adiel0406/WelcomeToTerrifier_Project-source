@@ -1,10 +1,10 @@
 #ifndef ART_H
 #define ART_H
 
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp> //sf
 #include <cmath>
-#include <vector>
-#include <string>
+#include <vector> //para almacenar las texturas de movimiento
+#include <string> //rutas de archivos
 
 class Art {
 private:
@@ -14,7 +14,7 @@ private:
     float rangoDeteccion;
     
     // Direcciones
-    enum Direccion { ABAJO, ARRIBA, IZQUIERDA, DERECHA };
+    enum Direccion { ABAJO, ARRIBA, IZQUIERDA, DERECHA };   //enum convierte las direcciones en numeraciones enteras para que el codigo sea mas legible
     Direccion direccionActual;
     
     // Sprites (1 quieto + 4 caminar por cada dirección)
@@ -22,23 +22,23 @@ private:
     sf::Texture quietoArriba;
     sf::Texture quietoIzquierda;
     sf::Texture quietoDerecha;
-    
+    // Vectores para almacenar las texturas de caminar en cada dirección
     std::vector<sf::Texture> caminarAbajo;
     std::vector<sf::Texture> caminarArriba;
     std::vector<sf::Texture> caminarIzquierda;
     std::vector<sf::Texture> caminarDerecha;
     
     // Sprite y animación
-    sf::Sprite sprite;
+    sf::Sprite sprite;      //representación visual de Art
     int frameActual;
-    float tiempoPorFrame;
-    float tiempoAnimacion;
-    bool caminando;
+    float tiempoPorFrame;   //duración de cada frame en segundos
+    float tiempoAnimacion;  //acumulador de tiempo tras el ultimo cambio de frame
+    bool caminando; //decide si se queda quieto o se mueve
     
-    // Métodos privados
-    float calcularDistancia(float px, float py) const;
-    void actualizarAnimacion(float deltaTime);
-    void actualizarDireccion(float diffX, float diffY);
+    
+    float calcularDistancia(float px, float py) const; //distancia al jugador
+    void actualizarAnimacion(float deltaTime);  //gestiona la animación
+    void actualizarDireccion(float diffX, float diffY);     //actualiza la dirección según la posición del jugador
 
 public:
     // Constructor
