@@ -379,7 +379,7 @@ int main() {
         // Calcular dirección desde el jugador hacia el mouse
         sf::Vector2f playerPos = player.getPosition();
         lightDir.x = mouseWorldPos.x - playerPos.x;
-        lightDir.y = (mouseWorldPos.y - playerPos.y);
+        lightDir.y = -(mouseWorldPos.y - playerPos.y);
         
         // Normalizar la dirección (IMPORTANTE para el shader)
         float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
