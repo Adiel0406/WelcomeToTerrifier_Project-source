@@ -87,13 +87,13 @@ struct Collider {
     }
 };
 
-inline bool aabbIntersects(const sf::FloatRect &a, const sf::FloatRect &b) {
+inline bool aabbIntersects(const sf::FloatRect &a, const sf::FloatRect &b) { // Esta funcion detecta cuando dos colliders... colisionan 
     return a.left < b.left + b.width && a.left + a.width > b.left &&
            a.top  < b.top  + b.height && a.top  + a.height > b.top;
 }
 
 
-inline void resolveCollisionsAxisSeparated(Collider &moving, const std::vector<sf::FloatRect> &statics, float dt)
+inline void resolveCollisionsAxisSeparated(Collider &moving, const std::vector<sf::FloatRect> &statics, float dt) // Esta funcion hace que los dos colliders se detengan
 {
     sf::Vector2f move = moving.velocity * dt;
 
