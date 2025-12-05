@@ -15,7 +15,7 @@ Art::Art(float startX, float startY)
     tex.create(32, 32);
     sprite.setTexture(tex);
     sprite.setPosition(x, y);
-    sprite.setOrigin(16.0f, 16.0f);
+    sprite.setOrigin(45.0f, 45.0f);
 }
 
 void Art::actualizar(float deltaTime, float playerX, float playerY) {
@@ -168,7 +168,6 @@ void Art::cargarSprites(
     sprite.setTexture(quietoAbajo);
     sprite.setOrigin(sprite.getLocalBounds().width / 2.0f, sprite.getLocalBounds().height / 2.0f);
 }
-//sin ella no se podrian cargar las texturas desde archivos
 
 void Art::setPosicion(float nuevaX, float nuevaY) {     //actualizar posición
     x = nuevaX;

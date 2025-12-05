@@ -228,7 +228,7 @@ int main() {
         }
     );
 
-    art.setVelocidad(180.0f);  // Un poco más lento que el jugador
+    art.setVelocidad(100.0f);  // Un poco más lento que el jugador
     art.setRangoDeteccion(400.0f);  // Rango de detección amplio
 
     //---------------------------------------------
