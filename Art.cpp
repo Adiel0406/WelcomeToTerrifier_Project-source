@@ -12,10 +12,10 @@ Art::Art(float startX, float startY)
 {
     // Crear sprite básico (fallback - cuadrado blanco)
     sf::Texture tex;
-    tex.create(32, 32);
+    tex.create(45, 45);
     sprite.setTexture(tex);
     sprite.setPosition(x, y);
-    sprite.setOrigin(45.0f, 45.0f);
+    sprite.setOrigin(22.5f, 22.5f);
 }
 
 void Art::actualizar(float deltaTime, float playerX, float playerY) {
@@ -166,7 +166,7 @@ void Art::cargarSprites(
     
     // Establecer sprite inicial
     sprite.setTexture(quietoAbajo);
-    sprite.setOrigin(sprite.getLocalBounds().width / 2.0f, sprite.getLocalBounds().height / 2.0f);
+    sprite.setOrigin(22.5f, 22.5f);
 }
 
 void Art::setPosicion(float nuevaX, float nuevaY) {     //actualizar posición
