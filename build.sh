@@ -18,7 +18,7 @@ else
     LIB='-L/usr/local/lib'
   fi
   echo "Compilando con includes: $INCL y libs: $LIB"
-  clang++ -std=c++17 -g main.cpp spawn_object.cpp Art.cpp -o "$OUT" $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system
+  clang++ -std=c++17 -g main.cpp spawn_object.cpp Art.cpp -o "$OUT" $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 fi
 
 echo "Compilación completada: ./$OUT"
