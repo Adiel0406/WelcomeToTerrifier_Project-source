@@ -183,6 +183,10 @@ int main() {
     sf::FloatRect pb = player.getLocalBounds();
     player.setOrigin(pb.width / 2.f, pb.height / 2.f);
 
+    // Estado para recoger objetos con Q
+    bool qPrev = false;
+    const float pickupRadius = 48.f;
+
     //---------------------------------------------
     //                 IA ART
     //---------------------------------------------
@@ -344,19 +348,19 @@ int main() {
         // Interpolar velocity hacia targetVel por componentes
         // X
         if (velocity.x < targetVel.x) {
-            velocity.x += accel * dt;
+            velocity.x += accel;
             if (velocity.x > targetVel.x){ velocity.x = targetVel.x;}
         } else if (velocity.x > targetVel.x) {
-            velocity.x -= decel * dt;
+            velocity.x -= decel;
             if (velocity.x < targetVel.x){ velocity.x = targetVel.x;}
         }
         // Y
         if (velocity.y < targetVel.y) {
-            velocity.y += accel * dt;
+            velocity.y += accel;
             if (velocity.y > targetVel.y){velocity.y = targetVel.y;} 
             
         } else if (velocity.y > targetVel.y) {
-            velocity.y -= decel * dt;
+            velocity.y -= decel;
             if (velocity.y < targetVel.y){ velocity.y = targetVel.y;}
         }
 
@@ -406,6 +410,29 @@ int main() {
         flashlight.setUniform("lightRadius", lightRadius);
         flashlight.setUniform("innerRadius", innerRadius);
         flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
+
+        // --- Recolectar objetos con la tecla Q (solo al presionar una vez) ---
+        bool qNow = sf::Keyboard::isKeyPressed(sf::Keyboard::Q);
+        if (qNow && !qPrev) {
+            sf::Vector2f ppos = player.getPosition();
+            int bestIdx = -1;
+            float bestDistSq = pickupRadius * pickupRadius;
+            for (int i = 0; i < (int)objetos.size(); ++i) {
+                sf::Vector2f op = objetos[i].sprite.getPosition();
+                float dx = op.x - ppos.x;
+                float dy = op.y - ppos.y;
+                float d2 = dx*dx + dy*dy;
+                if (d2 < bestDistSq) {
+                    bestDistSq = d2;
+                    bestIdx = i;
+                }
+            }
+            if (bestIdx != -1) {
+                std::cout << "Recogido: " << objetos[bestIdx].nombre << "\n";
+                objetos.erase(objetos.begin() + bestIdx);
+            }
+        }
+        qPrev = qNow;
 
         //---------------------------------------------
         //              DRAW
