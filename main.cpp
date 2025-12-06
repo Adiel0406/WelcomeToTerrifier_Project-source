@@ -59,6 +59,22 @@ int main() {
         chaseSound.setVolume(0.f);
     }
 
+    // Sonido adicional para persecución/alerta de Art (archivo tercer sonido)
+    sf::SoundBuffer persecucionArtBuf;
+    bool persecucionArtLoaded = false;
+    if (persecucionArtBuf.loadFromFile("assets/audio/persecucion_art.mp3")) {
+        persecucionArtLoaded = true;
+    } else {
+        std::cerr << "No se pudo cargar assets/audio/persecucion_art.mp3" << std::endl;
+    }
+    sf::Sound persecucionArtSound;
+    if (persecucionArtLoaded) {
+        persecucionArtSound.setBuffer(persecucionArtBuf);
+        // Este sonido será controlado por distancia: loop y volumen inicial 0
+        persecucionArtSound.setLoop(true);
+        persecucionArtSound.setVolume(0.f);
+    }
+
     bool inMenu = true;
     while (inMenu) {
         sf::Event me;
@@ -182,6 +198,16 @@ int main() {
         o.sprite.setTexture(texturas[o.nombre]);
         o.sprite.setPosition(o.x, o.y);
     }
+
+    // Contar cuántos objetos son "no llave" y "no palanca" para el mensaje
+    int totalNonKeyObjects = 0;
+    for (auto &o : objetos) {
+        if (o.nombre.find("Llave") == std::string::npos && o.nombre != "Palanca") totalNonKeyObjects++;
+    }
+    int collectedNonKeyObjects = 0;
+    std::string pickupMessage = "";
+    float pickupMessageTimer = 0.f;
+    const float pickupMessageDuration = 2.0f;
 
     std::vector<sf::Texture>walkDown(4);
     walkDown[0].loadFromFile("assets/sprites/sienna_sprites/WalkDown1.png");
@@ -364,11 +390,17 @@ int main() {
             if (bestIdx != -1) {
                 std::string recogido = objetos[bestIdx].nombre;
                 std::cout << "Recogido: " << recogido << "\n";
-                // Contar llaves y palanca
+                // Contar llaves y palanca. Si no es llave ni palanca, aumentar contador especial
                 if (recogido.find("Llave") != std::string::npos) {
                     keyCount++;
                 } else if (recogido == "Palanca") {
                     hasPalanca = true;
+                } else {
+                    // Objeto genérico recogido
+                    collectedNonKeyObjects++;
+                    pickupMessage = std::to_string(collectedNonKeyObjects) + " de 10";
+                    pickupMessageTimer = pickupMessageDuration;
+                    // No reproducir aquí: el sonido 'persecucion_art' se controla por distancia
                 }
                 objetos.erase(objetos.begin() + bestIdx);
             }
@@ -388,6 +420,12 @@ int main() {
             showInventory = !showInventory;
         }
         iPrev = iNow;
+
+        // Actualizar temporizador del mensaje de pickup
+        if (pickupMessageTimer > 0.f) {
+            pickupMessageTimer -= dt;
+            if (pickupMessageTimer < 0.f) pickupMessageTimer = 0.f;
+        }
 
         // Si NO está en pausa, ejecutar lógica de actualización
         if (!isPaused) {
@@ -498,6 +536,29 @@ int main() {
                     if (chaseSound.getStatus() != sf::Sound::Playing) chaseSound.play();
                 } else {
                     if (chaseSound.getStatus() == sf::Sound::Playing) chaseSound.pause();
+                }
+            }
+
+            // Actualizar volumen del tercer sonido (persecucion_art) según proximidad gradual
+            if (persecucionArtLoaded) {
+                sf::Vector2f artPos = art.getSprite().getPosition();
+                sf::Vector2f pPos = player.getPosition();
+                float dx2 = artPos.x - pPos.x;
+                float dy2 = artPos.y - pPos.y;
+                float dist2 = std::sqrt(dx2*dx2 + dy2*dy2);
+                const float maxHearDistArt = 600.f; // distancia donde ya no se oye
+                float targetVolArt = 0.f;
+                if (dist2 < maxHearDistArt) targetVolArt = 100.f * (1.0f - dist2 / maxHearDistArt);
+                if (targetVolArt < 0.f) targetVolArt = 0.f; if (targetVolArt > 100.f) targetVolArt = 100.f;
+                // Suavizado simple para evitar saltos bruscos
+                float curVol = persecucionArtSound.getVolume();
+                float smooth = 0.08f; // factor de mezcla hacia target
+                float newVol = curVol * (1.0f - smooth) + targetVolArt * smooth;
+                persecucionArtSound.setVolume(newVol);
+                if (newVol > 1.f) {
+                    if (persecucionArtSound.getStatus() != sf::Sound::Playing) persecucionArtSound.play();
+                } else {
+                    if (persecucionArtSound.getStatus() == sf::Sound::Playing) persecucionArtSound.pause();
                 }
             }
 
@@ -631,6 +692,15 @@ int main() {
             invContent.setFillColor(sf::Color::White);
             invContent.setPosition(20.f, 70.f);
             window.draw(invContent);
+        }
+
+        // Mensaje temporal al recoger objetos (no llaves ni palanca)
+        if (pickupMessageTimer > 0.f && !pickupMessage.empty()) {
+            sf::Text msg(pickupMessage, menuFont, 28);
+            msg.setFillColor(sf::Color::White);
+            // Centrar el texto en la parte superior
+            msg.setPosition((1280.f - msg.getLocalBounds().width) / 2.f, 100.f);
+            window.draw(msg);
         }
 
         window.display();
