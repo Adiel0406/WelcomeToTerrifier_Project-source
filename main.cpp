@@ -187,6 +187,14 @@ int main() {
     bool qPrev = false;
     const float pickupRadius = 48.f;
 
+    // Sistema de pausa e inventario
+    bool isPaused = false;
+    bool pPrev = false;
+    bool iPrev = false;
+    bool showInventory = false;
+    int keyCount = 0;
+    bool hasPalanca = false;
+
     //---------------------------------------------
     //                 IA ART
     //---------------------------------------------
@@ -283,135 +291,8 @@ int main() {
         col.setSize({20.f, 40.f});
         col.setPosition(sf::Vector2f(400, 1450));
         col.shape.setFillColor(sf::Color::Cyan);
-        //---------------------------------------------
-        //           MOVIMIENTO + DIRECCION
-        //---------------------------------------------
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            movement.y -= 1.f;
-            dir = UP;
-            moving = true;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-            movement.y += 1.f;
-            dir = DOWN;
-            moving = true;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            movement.x -= 1.f;
-            dir = LEFT;
-            moving = true;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            movement.x += 1.f;
-            dir = RIGHT;
-            moving = true;
-        }
-
-        if (moving) {
-            timer += dt;
-            if (timer >= frameTime) {
-                timer = 0;
-                currentFrame = (currentFrame + 1) % walkDown.size(); // número de frames
-            }
-
-            // Cambiar textura según dirección
-            switch (dir) {
-                case DOWN:  player.setTexture(walkDown[currentFrame]); break;
-                case UP:    player.setTexture(walkUp[currentFrame]);   break;
-                case LEFT:  player.setTexture(walkLeft[currentFrame]); break;
-                case RIGHT: player.setTexture(walkRight[currentFrame]);break;
-            }
-        } 
-        else {
-            // Quieto
-            switch (dir) {
-                case DOWN:  player.setTexture(texDown); break;
-                case UP:    player.setTexture(texUp); break;
-                case LEFT:  player.setTexture(texLeft); break;
-                case RIGHT: player.setTexture(texRight); break;
-            }
-        }
-
-
-        
-        // Normalizar input para evitar velocidad mayor en diagonal
-        float inputLen = std::sqrt(movement.x*movement.x + movement.y*movement.y);
-        sf::Vector2f inputDir(0.f,0.f);
-        if (inputLen > 0.001f) inputDir = sf::Vector2f(movement.x/inputLen, movement.y/inputLen);
-
-        // Objetivo de velocidad
-        sf::Vector2f targetVel = inputDir * (moving ? maxSpeed : 0.f);
-        col.velocity = velocity * dt;
-
-
-        // Interpolar velocity hacia targetVel por componentes
-        // X
-        if (velocity.x < targetVel.x) {
-            velocity.x += accel;
-            if (velocity.x > targetVel.x){ velocity.x = targetVel.x;}
-        } else if (velocity.x > targetVel.x) {
-            velocity.x -= decel;
-            if (velocity.x < targetVel.x){ velocity.x = targetVel.x;}
-        }
-        // Y
-        if (velocity.y < targetVel.y) {
-            velocity.y += accel;
-            if (velocity.y > targetVel.y){velocity.y = targetVel.y;} 
-            
-        } else if (velocity.y > targetVel.y) {
-            velocity.y -= decel;
-            if (velocity.y < targetVel.y){ velocity.y = targetVel.y;}
-        }
-
-        // Movimiento final (aplica dt)
-        sf::Vector2f finalMovement = velocity * dt;
-        player.move(finalMovement);
-
-        //---------------------------------------------
-        //          ACTUALIZAR IA ART
-        //---------------------------------------------
-        art.actualizar(dt, player.getPosition().x, player.getPosition().y);
-
-        //---------------------------------------------
-        //          DIRECCION DE LUZ CON MOUSE
-        //---------------------------------------------
-         // Obtener posición del mouse en coordenadas del mundo
-        sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
-        sf::Vector2f mouseWorldPos = window.mapPixelToCoords(mousePixelPos, view);
-        
-        // Calcular dirección desde el jugador hacia el mouse
-        sf::Vector2f playerPos = player.getPosition();
-        lightDir.x = mouseWorldPos.x - playerPos.x;
-        lightDir.y = -(mouseWorldPos.y - playerPos.y);
-        
-        // Normalizar la dirección (IMPORTANTE para el shader)
-        float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
-        if (length != 0) {
-            lightDir.x /= length;
-            lightDir.y /= length;
-        }
-
-        //---------------------------------------------
-        //                UPDATE CAMARA
-        //---------------------------------------------
-        
-        view.setCenter(player.getPosition());
-        limitCam(view,player,mapBounds);
-        window.setView(view);
-        
-
-        //---------------------------------------------
-        //             UPDATE SHADER PARAMS
-        //---------------------------------------------
-        sf::Vector2i playerScreenPos = window.mapCoordsToPixel(player.getPosition(), view);
-        flashlight.setUniform("lightPos", sf::Vector2f(playerScreenPos.x, window.getSize().y - playerScreenPos.y));
-        flashlight.setUniform("lightDir", lightDir);
-        flashlight.setUniform("lightRadius", lightRadius);
-        flashlight.setUniform("innerRadius", innerRadius);
-        flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
-
-        // --- Recolectar objetos con la tecla Q (solo al presionar una vez) ---
+        // --- Entrada que SIEMPRE se procesa (Q para recoger, P para pausa) ---
         bool qNow = sf::Keyboard::isKeyPressed(sf::Keyboard::Q);
         if (qNow && !qPrev) {
             sf::Vector2f ppos = player.getPosition();
@@ -428,11 +309,156 @@ int main() {
                 }
             }
             if (bestIdx != -1) {
-                std::cout << "Recogido: " << objetos[bestIdx].nombre << "\n";
+                std::string recogido = objetos[bestIdx].nombre;
+                std::cout << "Recogido: " << recogido << "\n";
+                // Contar llaves y palanca
+                if (recogido.find("Llave") != std::string::npos) {
+                    keyCount++;
+                } else if (recogido == "Palanca") {
+                    hasPalanca = true;
+                }
                 objetos.erase(objetos.begin() + bestIdx);
             }
         }
         qPrev = qNow;
+
+        // --- Pausa con tecla P ---
+        bool pNow = sf::Keyboard::isKeyPressed(sf::Keyboard::P);
+        if (pNow && !pPrev) {
+            isPaused = !isPaused;
+        }
+        pPrev = pNow;
+
+        // --- Mostrar Inventario con tecla I ---
+        bool iNow = sf::Keyboard::isKeyPressed(sf::Keyboard::I);
+        if (iNow && !iPrev) {
+            showInventory = !showInventory;
+        }
+        iPrev = iNow;
+
+        // Si NO está en pausa, ejecutar lógica de actualización
+        if (!isPaused) {
+            //---------------------------------------------
+            //           MOVIMIENTO + DIRECCION
+            //---------------------------------------------
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+                movement.y -= 1.f;
+                dir = UP;
+                moving = true;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+                movement.y += 1.f;
+                dir = DOWN;
+                moving = true;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                movement.x -= 1.f;
+                dir = LEFT;
+                moving = true;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+                movement.x += 1.f;
+                dir = RIGHT;
+                moving = true;
+            }
+
+            if (moving) {
+                timer += dt;
+                if (timer >= frameTime) {
+                    timer = 0;
+                    currentFrame = (currentFrame + 1) % walkDown.size(); // número de frames
+                }
+
+                // Cambiar textura según dirección
+                switch (dir) {
+                    case DOWN:  player.setTexture(walkDown[currentFrame]); break;
+                    case UP:    player.setTexture(walkUp[currentFrame]);   break;
+                    case LEFT:  player.setTexture(walkLeft[currentFrame]); break;
+                    case RIGHT: player.setTexture(walkRight[currentFrame]);break;
+                }
+            } 
+            else {
+                // Quieto
+                switch (dir) {
+                    case DOWN:  player.setTexture(texDown); break;
+                    case UP:    player.setTexture(texUp); break;
+                    case LEFT:  player.setTexture(texLeft); break;
+                    case RIGHT: player.setTexture(texRight); break;
+                }
+            }
+
+            // Normalizar input para evitar velocidad mayor en diagonal
+            float inputLen = std::sqrt(movement.x*movement.x + movement.y*movement.y);
+            sf::Vector2f inputDir(0.f,0.f);
+            if (inputLen > 0.001f) inputDir = sf::Vector2f(movement.x/inputLen, movement.y/inputLen);
+
+            // Objetivo de velocidad
+            sf::Vector2f targetVel = inputDir * (moving ? maxSpeed : 0.f);
+            col.velocity = velocity * dt;
+
+            // Interpolar velocity hacia targetVel por componentes
+            // X
+            if (velocity.x < targetVel.x) {
+                velocity.x += accel;
+                if (velocity.x > targetVel.x){ velocity.x = targetVel.x;}
+            } else if (velocity.x > targetVel.x) {
+                velocity.x -= decel;
+                if (velocity.x < targetVel.x){ velocity.x = targetVel.x;}
+            }
+            // Y
+            if (velocity.y < targetVel.y) {
+                velocity.y += accel;
+                if (velocity.y > targetVel.y){velocity.y = targetVel.y;} 
+            } else if (velocity.y > targetVel.y) {
+                velocity.y -= decel;
+                if (velocity.y < targetVel.y){ velocity.y = targetVel.y;}
+            }
+
+            // Movimiento final (aplica dt)
+            sf::Vector2f finalMovement = velocity * dt;
+            player.move(finalMovement);
+
+            //---------------------------------------------
+            //          ACTUALIZAR IA ART
+            //---------------------------------------------
+            art.actualizar(dt, player.getPosition().x, player.getPosition().y);
+
+            //---------------------------------------------
+            //          DIRECCION DE LUZ CON MOUSE
+            //---------------------------------------------
+            // Obtener posición del mouse en coordenadas del mundo
+            sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+            sf::Vector2f mouseWorldPos = window.mapPixelToCoords(mousePixelPos, view);
+            
+            // Calcular dirección desde el jugador hacia el mouse
+            sf::Vector2f playerPos = player.getPosition();
+            lightDir.x = mouseWorldPos.x - playerPos.x;
+            lightDir.y = -(mouseWorldPos.y - playerPos.y);
+            
+            // Normalizar la dirección (IMPORTANTE para el shader)
+            float length = std::sqrt(lightDir.x * lightDir.x + lightDir.y * lightDir.y);
+            if (length != 0) {
+                lightDir.x /= length;
+                lightDir.y /= length;
+            }
+
+            //---------------------------------------------
+            //                UPDATE CAMARA
+            //---------------------------------------------
+            view.setCenter(player.getPosition());
+            limitCam(view,player,mapBounds);
+            window.setView(view);
+
+            //---------------------------------------------
+            //             UPDATE SHADER PARAMS
+            //---------------------------------------------
+            sf::Vector2i playerScreenPos = window.mapCoordsToPixel(player.getPosition(), view);
+            flashlight.setUniform("lightPos", sf::Vector2f(playerScreenPos.x, window.getSize().y - playerScreenPos.y));
+            flashlight.setUniform("lightDir", lightDir);
+            flashlight.setUniform("lightRadius", lightRadius);
+            flashlight.setUniform("innerRadius", innerRadius);
+            flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
+        } // Fin del bloque de no-pausa
 
         //---------------------------------------------
         //              DRAW
@@ -478,6 +504,39 @@ int main() {
         
 
         window.draw(screen, &flashlight);
+
+        //---------------------------------------------
+        //              HUD - UI
+        //---------------------------------------------
+        // Cambiar a vista de pantalla para dibujar HUD en coordenadas fijas
+        sf::View screenView = window.getDefaultView();
+        window.setView(screenView);
+
+        // --- Símbolo de PAUSA (esquina superior derecha) ---
+        if (isPaused) {
+            sf::Text pauseText("||", menuFont, 48);
+            pauseText.setFillColor(sf::Color::Red);
+            pauseText.setPosition(1280 - 80.f, 20.f);
+            window.draw(pauseText);
+        }
+
+        // --- Mostrar INVENTARIO (esquina superior izquierda) ---
+        if (showInventory) {
+            sf::Text invTitle("I", menuFont, 40);
+            invTitle.setFillColor(sf::Color::Yellow);
+            invTitle.setPosition(20.f, 20.f);
+            window.draw(invTitle);
+
+            // Mostrar contenido del inventario
+            std::string invText = "Llaves: " + std::to_string(keyCount) + "\n";
+            invText += "Palanca: " + std::string(hasPalanca ? "SI" : "NO");
+            
+            sf::Text invContent(invText, menuFont, 20);
+            invContent.setFillColor(sf::Color::White);
+            invContent.setPosition(20.f, 70.f);
+            window.draw(invContent);
+        }
+
         window.display();
     }
 
