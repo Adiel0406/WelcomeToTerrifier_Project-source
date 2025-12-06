@@ -7,7 +7,7 @@
             "command": "/bin/zsh",
             "args": [
                 "-c",
-                "if [ -d /opt/homebrew ]; then INCL='-I/opt/homebrew/include'; LIB='-L/opt/homebrew/lib'; else INCL='-I/usr/local/include'; LIB='-L/usr/local/lib'; fi; /usr/bin/clang++ -std=c++17 -g \"${file}\" -o \"${fileDirname}/${fileBasenameNoExtension}\" $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system"
+                "if [ -d /opt/homebrew ]; then INCL='-I/opt/homebrew/include'; LIB='-L/opt/homebrew/lib'; else INCL='-I/usr/local/include'; LIB='-L/usr/local/lib'; fi; cd \"${workspaceFolder}\" && /usr/bin/clang++ -std=c++17 -g main.cpp spawn_object.cpp Art.cpp -o main $INCL $LIB -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio"
             ],
             "options": {
                 "shell": {
