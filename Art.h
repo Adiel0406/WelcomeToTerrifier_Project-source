@@ -12,6 +12,10 @@ private:
     float x, y;
     float velocidad;
     float rangoDeteccion;
+
+    //estados
+    enum Estado { PATRULLANDO, PERSEGUIR, REGRESANDO };
+    Estado estadoActual;
     
     // Direcciones
     enum Direccion { ABAJO, ARRIBA, IZQUIERDA, DERECHA };   //enum convierte las direcciones en numeraciones enteras para que el codigo sea mas legible
@@ -35,10 +39,34 @@ private:
     float tiempoAnimacion;  //acumulador de tiempo tras el ultimo cambio de frame
     bool caminando; //decide si se queda quieto o se mueve
     
+    struct Waypoint {
+        sf::Vector2f posicion;
+        float tiempoEspera;  // Tiempo a esperar en este waypoint
+        
+        Waypoint(float x, float y, float wait = 0.0f)
+            : posicion(x, y), tiempoEspera(wait) {}
+    };
+    
+    std::vector<Waypoint> waypoints;
+    size_t waypointActual;
+    float distanciaUmbral;
+    float temporizadorEspera;
+    bool esperando;
+    bool patrullaCiclica;  // Si vuelve al primer waypoint después del último
+    
+    // Punto de inicio (para regresar después de perseguir)
+    sf::Vector2f posicionInicial;
+    size_t waypointInicioPersecucion;
     
     float calcularDistancia(float px, float py) const; //distancia al jugador
+    float calcularDistanciaAlPunto(const sf::Vector2f& punto) const;
     void actualizarAnimacion(float deltaTime);  //gestiona la animación
     void actualizarDireccion(float diffX, float diffY);     //actualiza la dirección según la posición del jugador
+    void actualizarPatrulla(float deltaTime);
+    void actualizarPersecucion(float deltaTime, float playerX, float playerY);
+    void actualizarRegreso(float deltaTime);
+    void moverHaciaPunto(float targetX, float targetY, float deltaTime);
+    void ejecutarAccionWaypoint(const std::string& accion);
 
 public:
     // Constructor
@@ -59,6 +87,12 @@ public:
         const std::vector<std::string>& caminarDerechaPaths   // 4 frames
     );
     
+    void agregarWaypoint(float x, float y, float tiempoEspera = 0.0f);
+    void limpiarWaypoints();
+    bool cargarWaypointsDesdeArchivo(const std::string& rutaArchivo);
+    void establecerPatrullaCiclica(bool ciclico) { patrullaCiclica = ciclico; }
+    void iniciarPatrullaDesdeWaypoint(size_t indice);
+
     // Getters
     float getX() const { return x; }
     float getY() const { return y; }
