@@ -314,6 +314,16 @@ int main() {
 
     sf::Clock clock;
 
+    std::vector<sf::RectangleShape> obstaclesShapes;
+    std::vector<sf::FloatRect> obstaclesRects;
+    
+    oc::Collider col;
+    col.setSize({20.f, 40.f});
+    col.setPosition(player.getPosition());
+    col.shape.setFillColor(sf::Color::Cyan);
+
+    oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects);
+
     while (window.isOpen()) {
         sf::Event event;
         float dt = clock.restart().asSeconds();
@@ -333,10 +343,7 @@ int main() {
                 window.close();
         }
         
-        oc::Collider col;
-        col.setSize({20.f, 40.f});
-        col.setPosition(sf::Vector2f(400, 1450));
-        col.shape.setFillColor(sf::Color::Cyan);
+        
 
         // --- Entrada que SIEMPRE se procesa (Q para recoger, P para pausa) ---
         bool qNow = sf::Keyboard::isKeyPressed(sf::Keyboard::Q);
@@ -462,7 +469,13 @@ int main() {
 
             // Movimiento final (aplica dt)
             sf::Vector2f finalMovement = velocity * dt;
-            player.move(finalMovement);
+            //player.move(finalMovement);
+
+            col.setPosition(player.getPosition());
+            col.velocity = velocity;
+            oc::resolveCollisionsAxisSeparated(col, obstaclesRects, dt);
+            player.setPosition(col.getPosition());
+
 
             //---------------------------------------------
             //          ACTUALIZAR IA ART
@@ -541,14 +554,6 @@ int main() {
         rec1.setSize(sf::Vector2f(1500,100));
         rec1.setPosition(300,0);
 
-        std::vector<sf::RectangleShape> obstaclesShapes;
-        std::vector<sf::FloatRect> obstaclesRects;
-        oc::resolveCollisionsAxisSeparated(col, obstaclesRects, dt);
-        //std::cout<< checker(rec1,c1) <<std::endl;
-        
-
-        oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects);
-
 
         window.clear();
         window.draw(map);
@@ -563,12 +568,13 @@ int main() {
         col.draw(window);
         window.draw(player);
         window.draw(art.getSprite());
+    
         for(auto& o : objetos){
             window.draw(o.sprite);
         }
         
 
-        window.draw(screen, &flashlight);
+        //window.draw(screen, &flashlight);
 
         //---------------------------------------------
         //              HUD - UI
