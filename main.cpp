@@ -1,6 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 #include <vector>
 #include <map>
 #include "brenett.h"
@@ -301,19 +303,44 @@ int main() {
         }
     );
 
-    art.setVelocidad(100.0f);  // Un poco más lento que el jugador
-    art.setRangoDeteccion(400.0f);  // Rango de detección amplio
-    art.setDistanciaUmbral(20.0f);
-    art.setPatrullaCiclica(true);
+    // Configuración de comportamiento: si `artIsHostile` es false, Art NO perseguirá al jugador
+    // sino que vagará por todo el mapa como un NPC (waypoints aleatorios).
+    bool artIsHostile = false; // cambiar a true para restaurar persecución hacia el jugador
 
-    if (!art.cargarWaypointsDesdeArchivo("assets/waypoints_art.txt")) {
-    // Si falla, crear waypoints manualmente
-    
-    art.agregarWaypoint(300, 300, 2.0);  // Espera 2 segundos
-    art.agregarWaypoint(500, 300, 1.5);  // Espera 1.5 segundos
-    art.agregarWaypoint(500, 500, 3.0);  // Espera 3 segundos
-    art.agregarWaypoint(300, 500, 2.0);  // Espera 2 segundos
-}
+    if (artIsHostile) {
+        art.setVelocidad(100.0f);  // Un poco más lento que el jugador
+        art.setRangoDeteccion(400.0f);  // Rango de detección amplio
+        art.setDistanciaUmbral(20.0f);
+        art.setPatrullaCiclica(true);
+
+        if (!art.cargarWaypointsDesdeArchivo("assets/waypoints_art.txt")) {
+            // Si falla, crear waypoints manualmente
+            art.agregarWaypoint(300, 300, 2.0);
+            art.agregarWaypoint(500, 300, 1.5);
+            art.agregarWaypoint(500, 500, 3.0);
+            art.agregarWaypoint(300, 500, 2.0);
+        }
+    } else {
+        // Modo NPC: desactivar detección y generar waypoints aleatorios por todo el mapa
+        art.setVelocidad(80.0f);
+        art.setRangoDeteccion(0.f); // nunca entra en estado PERSEGUIR
+        art.setDistanciaUmbral(20.0f);
+        art.setPatrullaCiclica(true);
+
+        // Generar waypoints aleatorios dentro de los límites del mapa
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
+        art.limpiarWaypoints();
+        int numWaypoints = 8;
+        int rangeX = maxX - minX;
+        int rangeY = maxY - minY;
+        if (rangeX <= 0) rangeX = 1;
+        if (rangeY <= 0) rangeY = 1;
+        for (int i = 0; i < numWaypoints; ++i) {
+            int rx = minX + (std::rand() % rangeX);
+            int ry = minY + (std::rand() % rangeY);
+            art.agregarWaypoint(static_cast<float>(rx), static_cast<float>(ry), 1.0f, "");
+        }
+    }
 
     //---------------------------------------------
     //                 SHADER DE LUZ
