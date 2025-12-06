@@ -14,7 +14,7 @@ private:
     float rangoDeteccion;
 
     //estados
-    enum Estado { PATRULLANDO, PERSEGUIR };
+    enum Estado { PATRULLANDO, PERSEGUIR, REGRESANDO };
     Estado estadoActual;
     
     // Direcciones
@@ -55,8 +55,8 @@ private:
     bool patrullaCiclica;
     
     // Punto de inicio (para regresar después de perseguir)
-    sf::Vector2f posicionInicial;
-    size_t waypointInicioPersecucion;
+    size_t waypointAntesDePerseguir;
+    size_t encontrarWaypointMasCercano() const;
     
     float calcularDistancia(float px, float py) const; //distancia al jugador
     float calcularDistanciaAlPunto(const sf::Vector2f& punto) const;
@@ -64,6 +64,7 @@ private:
     void actualizarDireccion(float diffX, float diffY);     //actualiza la dirección según la posición del jugador
     void actualizarPatrulla(float deltaTime);
     void actualizarPersecucion(float deltaTime, float playerX, float playerY);
+    void actualizarRegreso(float deltaTime);
     void moverHaciaPunto(float targetX, float targetY, float deltaTime);
 
 public:

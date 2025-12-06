@@ -28,23 +28,39 @@ Art::Art(float startX, float startY)
 }
 
 void Art::actualizar(float deltaTime, float playerX, float playerY) {
-    // Calcular distancia al jugador
+
     float distanciaAlJugador = calcularDistancia(playerX, playerY);
+    Estado estadoAnterior = estadoActual;
     
-    // Cambiar estado según distancia
+    // Detectar cambios de estado
     if (distanciaAlJugador <= rangoDeteccion) {
         estadoActual = PERSEGUIR;
+        // Si acaba de empezar a perseguir, guardar posición/waypoint
+        if (estadoAnterior != PERSEGUIR) {
+            // Puedes guardar el waypoint actual aquí si quieres
+        }
     } else {
-        estadoActual = PATRULLANDO;
+        // Solo cambiar a REGRESANDO si estaba PERSEGUIR
+        if (estadoActual == PERSEGUIR) {
+            estadoActual = REGRESANDO;
+        }
+        // Si ya estaba REGRESANDO o PATRULLANDO, mantener estado
     }
     
-    // Actualizar comportamiento según estado
-    if (estadoActual == PERSEGUIR) {
-        actualizarPersecucion(deltaTime, playerX, playerY);
-    } else {
-        actualizarPatrulla(deltaTime);
+    // Ejecutar comportamiento según estado
+    switch (estadoActual) {
+        case PATRULLANDO:
+            actualizarPatrulla(deltaTime);
+            break;
+            
+        case PERSEGUIR:
+            actualizarPersecucion(deltaTime, playerX, playerY);
+            break;
+            
+        case REGRESANDO:
+            actualizarRegreso(deltaTime);
+            break;
     }
-    
     // Actualizar animación
     actualizarAnimacion(deltaTime);
     
@@ -125,21 +141,45 @@ void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
     }
 }
 
-void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
-    float diffX = targetX - x;
-    float diffY = targetY - y;
-    float distancia = std::sqrt(diffX * diffX + diffY * diffY);
-    
-    // Actualizar dirección visual
-    actualizarDireccion(diffX, diffY);
-    
-    if (distancia > 0) {
-        float dirX = diffX / distancia;
-        float dirY = diffY / distancia;
-        
-        x += dirX * velocidad * deltaTime;
-        y += dirY * velocidad * deltaTime;
+void Art::actualizarRegreso(float deltaTime) {
+    if (waypoints.empty()) {
+        estadoActual = PATRULLANDO;
+        return;
     }
+    
+    // Obtener waypoint objetivo
+    Waypoint& wp = waypoints[waypointActual];
+    float distancia = calcularDistanciaAlPunto(wp.posicion);
+    
+    // Si llegó al waypoint
+    if (distancia <= distanciaUmbral) {
+        // Volver a patrullar
+        estadoActual = PATRULLANDO;
+        esperando = true;
+        temporizadorEspera = wp.tiempoEspera;
+        caminando = false;
+        return;
+    }
+    // Mover hacia el waypoint
+    moverHaciaPunto(wp.posicion.x, wp.posicion.y, deltaTime);
+    caminando = true;
+}
+
+size_t Art::encontrarWaypointMasCercano() const {
+    if (waypoints.empty()) return 0;
+    
+    size_t indiceMasCercano = 0;
+    float distanciaMasCercana = calcularDistanciaAlPunto(waypoints[0].posicion);
+    
+    for (size_t i = 1; i < waypoints.size(); ++i) {
+        float distancia = calcularDistanciaAlPunto(waypoints[i].posicion);
+        if (distancia < distanciaMasCercana) {
+            distanciaMasCercana = distancia;
+            indiceMasCercano = i;
+        }
+    }
+    
+    return indiceMasCercano;
 }
 
 void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
