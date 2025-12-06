@@ -49,10 +49,10 @@ int main() {
 
     sf::SoundBuffer chaseBuf;
     bool chaseLoaded = false;
-    if (chaseBuf.loadFromFile("assets/audio/persecucion.mp3")) {
+    if (chaseBuf.loadFromFile("assets/audio/persecucion_art.mp3")) {
         chaseLoaded = true;
     } else {
-        std::cerr << "No se pudo cargar assets/audio/persecucion.mp3" << std::endl;
+        std::cerr << "No se pudo cargar assets/audio/persecucion_art.mp3" << std::endl;
     }
     sf::Sound chaseSound;
     if (chaseLoaded) {
@@ -64,11 +64,6 @@ int main() {
     // Sonido adicional para persecución/alerta de Art (archivo tercer sonido)
     sf::SoundBuffer persecucionArtBuf;
     bool persecucionArtLoaded = false;
-    if (persecucionArtBuf.loadFromFile("assets/audio/persecucion_art.mp3")) {
-        persecucionArtLoaded = true;
-    } else {
-        std::cerr << "No se pudo cargar assets/audio/persecucion_art.mp3" << std::endl;
-    }
     sf::Sound persecucionArtSound;
     if (persecucionArtLoaded) {
         persecucionArtSound.setBuffer(persecucionArtBuf);
@@ -249,6 +244,22 @@ int main() {
     // Estado para recoger objetos con Q
     bool qPrev = false;
     const float pickupRadius = 48.f;
+    // Estado para la mecánica de escapar/seguir a Art
+    bool escaping = false;
+    float escapeTimer = 0.f;
+    float escapeDuration = 0.f;
+    bool warningShown = false;
+    bool canFlee = false;
+    float warningTimer = 0.f;
+    const float warningWindow = 3.0f; // tiempo para huir tras aparecer la advertencia
+    bool gameOver = false;
+    const float activationRadius = 150.f; // radio para iniciar la secuencia
+    const float followRadius = 180.f; // radio en el que el jugador debe permanecer cerca de Art (mayor que activationRadius)
+    float proximityLostTimer = 0.f;
+    const float proximityLostDelay = 2.0f; // segundos que puede salirse antes de perder (grace)
+    const float instaKillRadius = 40.f; // si el jugador se acerca a esta distancia, comienza el temporizador
+    float instaKillTimer = 0.f;
+    const float instaKillDelay = 1.5f; // segundos que debe permanecer dentro para morir
 
     // Sistema de pausa e inventario
     bool isPaused = false;
@@ -342,6 +353,37 @@ int main() {
         }
     }
 
+    // Cargar sprite de advertencia (esquina inferior izquierda)
+    sf::Texture warnTex;
+    bool warnLoaded = false;
+    if (warnTex.loadFromFile("assets/sprites/advertencia.png")) {
+        warnLoaded = true;
+    } else {
+        std::cerr << "No se pudo cargar assets/sprites/advertencia.png" << std::endl;
+    }
+    sf::Sprite warnSprite;
+    if (warnLoaded) {
+        warnSprite.setTexture(warnTex);
+        // lo dibujaremos en la vista de pantalla (HUD), en la esquina inferior izquierda
+        warnSprite.setScale(0.6f, 0.6f);
+    }
+    // fallback: crear forma y texto por si no existe la imagen
+    sf::RectangleShape warnFallbackRect;
+    sf::Text warnFallbackText;
+    if (!warnLoaded) {
+        // fallback más grande y colorido para asegurar visibilidad
+        warnFallbackRect.setSize({260.f, 120.f});
+        warnFallbackRect.setFillColor(sf::Color(255, 80, 20, 230));
+        warnFallbackRect.setOutlineColor(sf::Color(255, 220, 50));
+        warnFallbackRect.setOutlineThickness(6.f);
+        // usar la fuente del menú si está disponible
+        warnFallbackText.setFont(menuFont);
+        warnFallbackText.setString("! ADVERTENCIA !");
+        warnFallbackText.setCharacterSize(28);
+        warnFallbackText.setFillColor(sf::Color::White);
+        warnFallbackText.setStyle(sf::Text::Bold);
+    }
+
     //---------------------------------------------
     //                 SHADER DE LUZ
     //---------------------------------------------
@@ -424,8 +466,8 @@ int main() {
                     hasPalanca = true;
                 } else {
                     // Objeto genérico recogido
-                    collectedNonKeyObjects++;
-                    pickupMessage = std::to_string(collectedNonKeyObjects) + " de 10";
+                        collectedNonKeyObjects++;
+                        pickupMessage = std::to_string(collectedNonKeyObjects) + " de " + std::to_string(totalNonKeyObjects);
                     pickupMessageTimer = pickupMessageDuration;
                     // No reproducir aquí: el sonido 'persecucion_art' se controla por distancia
                 }
@@ -433,6 +475,23 @@ int main() {
             }
         }
         qPrev = qNow;
+
+        // Iniciar secuencia de escape automáticamente cuando el jugador esté lo suficientemente cerca de Art
+        if (!escaping && !gameOver) {
+            sf::Vector2f ppos = player.getPosition();
+            sf::Vector2f artPos = art.getSprite().getPosition();
+            float dx = artPos.x - ppos.x; float dy = artPos.y - ppos.y;
+            float d = std::sqrt(dx*dx + dy*dy);
+            if (d <= activationRadius) {
+                escaping = true;
+                escapeTimer = 0.f;
+                // duración aleatoria entre 2.0 y 5.0 segundos
+                escapeDuration = 2.0f + static_cast<float>(std::rand()) / (static_cast<float>(RAND_MAX) / 3.0f);
+                warningShown = false;
+                canFlee = false;
+                warningTimer = 0.f;
+            }
+        }
 
         // --- Pausa con tecla P ---
         bool pNow = sf::Keyboard::isKeyPressed(sf::Keyboard::P);
@@ -546,6 +605,71 @@ int main() {
             //          ACTUALIZAR IA ART
             //---------------------------------------------
             art.actualizar(dt, player.getPosition().x, player.getPosition().y);
+
+            // Proximidad inmediata: iniciar temporizador de insta-kill en lugar de matar al instante
+            {
+                sf::Vector2f artPosIK = art.getSprite().getPosition();
+                sf::Vector2f pPosIK = player.getPosition();
+                float dxIK = artPosIK.x - pPosIK.x; float dyIK = artPosIK.y - pPosIK.y;
+                float distIK = std::sqrt(dxIK*dxIK + dyIK*dyIK);
+                if (!warningShown) {
+                    if (distIK <= instaKillRadius) {
+                        instaKillTimer += dt;
+                        // dar una pequeña ventana para que el jugador se aleje
+                        if (instaKillTimer >= instaKillDelay) {
+                            gameOver = true;
+                        }
+                    } else {
+                        // si se aleja, resetear timer
+                        instaKillTimer = 0.f;
+                    }
+                } else {
+                    // si la advertencia ya apareció, no aplicar insta-kill
+                    instaKillTimer = 0.f;
+                }
+            }
+
+            // Lógica de la secuencia de escape:
+            if (escaping && !warningShown && !gameOver) {
+                sf::Vector2f artPos = art.getSprite().getPosition();
+                sf::Vector2f pPos = player.getPosition();
+                float dx = artPos.x - pPos.x; float dy = artPos.y - pPos.y;
+                float dist = std::sqrt(dx*dx + dy*dy);
+                // debe mantenerse cerca de Art
+                if (dist <= followRadius) {
+                    escapeTimer += dt;
+                    // resetear timer de perdida de proximidad si vuelve a estar dentro
+                    proximityLostTimer = 0.f;
+                    if (escapeTimer >= escapeDuration) {
+                        // Mostrar advertencia y permitir huir por un tiempo limitado
+                        warningShown = true;
+                        canFlee = true;
+                        warningTimer = warningWindow;
+                    }
+                } else {
+                    // Si se aleja antes de que aparezca la advertencia, pierde inmediatamente
+                    gameOver = true;
+                }
+            }
+
+            // Si ya apareció la advertencia, contamos su ventana
+            if (warningShown && canFlee && !gameOver) {
+                warningTimer -= dt;
+                if (warningTimer <= 0.f) {
+                    // No huyó a tiempo -> Game Over
+                    gameOver = true;
+                }
+                // Si presiona SPACE mientras puede huir, se libera
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+                    if (canFlee) {
+                        escaping = false;
+                        warningShown = false;
+                        canFlee = false;
+                        warningTimer = 0.f;
+                        // éxito: permitir al jugador escapar (se puede añadir lógica extra)
+                    }
+                }
+            }
 
             // --- Actualizar volumen del sonido de persecución según distancia ---
             if (chaseLoaded) {
@@ -719,6 +843,74 @@ int main() {
             invContent.setFillColor(sf::Color::White);
             invContent.setPosition(20.f, 70.f);
             window.draw(invContent);
+        }
+
+        // Si hay advertencia visible, dibujarla en la esquina inferior izquierda (HUD view)
+        if (warningShown) {
+            // Cambiar a vista HUD
+            sf::View screenView = window.getDefaultView();
+            window.setView(screenView);
+            float sx = 20.f;
+            if (warnLoaded) {
+                float sy = 720.f - warnSprite.getGlobalBounds().height - 20.f;
+                warnSprite.setPosition(sx, sy);
+                window.draw(warnSprite);
+            } else {
+                // dibujar fallback
+                float sy = 720.f - warnFallbackRect.getSize().y - 20.f;
+                warnFallbackRect.setPosition(sx, sy);
+                window.draw(warnFallbackRect);
+                if (warnFallbackText.getString() != "") {
+                    // centrar texto dentro del rect
+                    sf::FloatRect r = warnFallbackRect.getGlobalBounds();
+                    sf::FloatRect t = warnFallbackText.getLocalBounds();
+                    warnFallbackText.setPosition(r.left + (r.width - t.width) / 2.f - t.left, r.top + (r.height - t.height) / 2.f - t.top);
+                    window.draw(warnFallbackText);
+                }
+            }
+            // Restaurar la vista anterior (la vista del juego)
+            window.setView(view);
+        }
+
+        // Si hay Game Over, mostrar pantalla y permitir reinicio con R
+        if (gameOver) {
+            // Vista HUD
+            sf::View screenView = window.getDefaultView();
+            window.setView(screenView);
+
+            sf::RectangleShape overlay(sf::Vector2f(1280.f, 720.f));
+            overlay.setFillColor(sf::Color(0,0,0,200));
+            window.draw(overlay);
+
+            sf::Text go("GAME OVER", menuFont, 96);
+            go.setFillColor(sf::Color::Red);
+            go.setStyle(sf::Text::Bold);
+            go.setPosition((1280.f - go.getLocalBounds().width)/2.f, (720.f - go.getLocalBounds().height)/2.f - 40.f);
+            window.draw(go);
+
+            sf::Text rr("Presiona R para reiniciar", menuFont, 24);
+            rr.setFillColor(sf::Color::White);
+            rr.setPosition((1280.f - rr.getLocalBounds().width)/2.f, (720.f - rr.getLocalBounds().height)/2.f + 60.f);
+            window.draw(rr);
+
+            // Reinicio si presionan R
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                gameOver = false;
+                escaping = false;
+                warningShown = false;
+                canFlee = false;
+                warningTimer = 0.f;
+                escapeTimer = 0.f;
+                collectedNonKeyObjects = 0;
+                pickupMessage = "";
+                pickupMessageTimer = 0.f;
+                // Reset posiciones
+                player.setPosition(400.f, 1450.f);
+                art.setPosicion(150.f, 150.f);
+            }
+            // Presentar el frame y saltar al siguiente (sin procesar más)`
+            window.display();
+            continue;
         }
 
         // Mensaje temporal al recoger objetos (no llaves ni palanca)
