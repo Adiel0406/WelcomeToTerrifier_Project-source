@@ -42,9 +42,10 @@ private:
     struct Waypoint {
         sf::Vector2f posicion;
         float tiempoEspera;  // Tiempo a esperar en este waypoint
+        std::string accion; // acción opcional a ejecutar al llegar
         
-        Waypoint(float x, float y, float wait = 0.0f)
-            : posicion(x, y), tiempoEspera(wait) {}
+        Waypoint(float x, float y, float wait = 0.0f, const std::string& acc = "")
+            : posicion(x, y), tiempoEspera(wait), accion(acc) {}
     };
     
     std::vector<Waypoint> waypoints;
@@ -87,7 +88,7 @@ public:
         const std::vector<std::string>& caminarDerechaPaths   // 4 frames
     );
     
-    void agregarWaypoint(float x, float y, float tiempoEspera = 0.0f);
+    void agregarWaypoint(float x, float y, float tiempoEspera = 0.0f, const std::string& accion = "");
     void limpiarWaypoints();
     bool cargarWaypointsDesdeArchivo(const std::string& rutaArchivo);
     void establecerPatrullaCiclica(bool ciclico) { patrullaCiclica = ciclico; }

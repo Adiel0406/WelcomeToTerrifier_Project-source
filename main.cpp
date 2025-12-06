@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <cmath>
 #include <vector>
 #include <map>
@@ -26,6 +27,36 @@ int main() {
     if (!menuFont.loadFromFile("assets/fonts/karmatic_arcade.ttf")) {
         // fallback: intentar otra fuente
         menuFont.loadFromFile("assets/fonts/fs-pixel-sans-unicode-regular.ttf");
+    }
+    // --- Audio: música de inicio y fondo, y sonido de persecución ---
+    sf::Music menuMusic;
+    if (!menuMusic.openFromFile("assets/audio/inicio.mp3")) {
+        std::cerr << "No se pudo cargar assets/audio/inicio.mp3" << std::endl;
+    } else {
+        menuMusic.setLoop(true);
+        menuMusic.play();
+    }
+
+    sf::Music bgMusic;
+    if (!bgMusic.openFromFile("assets/audio/fondo.mp3")) {
+        std::cerr << "No se pudo cargar assets/audio/fondo.mp3" << std::endl;
+    } else {
+        bgMusic.setLoop(true);
+        // no reproducir aún; se iniciará al entrar al juego
+    }
+
+    sf::SoundBuffer chaseBuf;
+    bool chaseLoaded = false;
+    if (chaseBuf.loadFromFile("assets/audio/persecucion.mp3")) {
+        chaseLoaded = true;
+    } else {
+        std::cerr << "No se pudo cargar assets/audio/persecucion.mp3" << std::endl;
+    }
+    sf::Sound chaseSound;
+    if (chaseLoaded) {
+        chaseSound.setBuffer(chaseBuf);
+        chaseSound.setLoop(true);
+        chaseSound.setVolume(0.f);
     }
 
     bool inMenu = true;
@@ -90,7 +121,11 @@ int main() {
 
         window.display();
     }
-    
+
+    // Al salir del menú: detener música de inicio y reproducir música de fondo
+    if (menuMusic.getStatus() == sf::Music::Playing) menuMusic.stop();
+    if (bgMusic.getStatus() != sf::Music::Playing) bgMusic.play();
+
     // Mapa
     sf::Texture mapyay; 
     mapyay.loadFromFile("assets/sprites/map.png");
@@ -423,6 +458,25 @@ int main() {
             //---------------------------------------------
             art.actualizar(dt, player.getPosition().x, player.getPosition().y);
 
+            // --- Actualizar volumen del sonido de persecución según distancia ---
+            if (chaseLoaded) {
+                sf::Vector2f artPos = art.getSprite().getPosition();
+                sf::Vector2f pPos = player.getPosition();
+                float dx = artPos.x - pPos.x;
+                float dy = artPos.y - pPos.y;
+                float dist = std::sqrt(dx*dx + dy*dy);
+                const float maxHearDist = 800.f; // distancia a la que ya no se oye
+                float vol = 0.f;
+                if (dist < maxHearDist) vol = 100.f * (1.0f - dist / maxHearDist);
+                if (vol < 0.f) vol = 0.f; if (vol > 100.f) vol = 100.f;
+                chaseSound.setVolume(vol);
+                if (vol > 1.f) {
+                    if (chaseSound.getStatus() != sf::Sound::Playing) chaseSound.play();
+                } else {
+                    if (chaseSound.getStatus() == sf::Sound::Playing) chaseSound.pause();
+                }
+            }
+
             //---------------------------------------------
             //          DIRECCION DE LUZ CON MOUSE
             //---------------------------------------------
@@ -518,6 +572,31 @@ int main() {
             pauseText.setFillColor(sf::Color::Red);
             pauseText.setPosition(1280 - 80.f, 20.f);
             window.draw(pauseText);
+
+            // Overlay semi-transparente oscuro
+            sf::RectangleShape pauseOverlay(sf::Vector2f(1280.f, 720.f));
+            pauseOverlay.setFillColor(sf::Color(0, 0, 0, 150));
+            window.draw(pauseOverlay);
+
+            // Texto "PAUSA" centrado en la pantalla
+            sf::Text pauseTitle("PAUSA", menuFont, 80);
+            pauseTitle.setFillColor(sf::Color::White);
+            pauseTitle.setStyle(sf::Text::Bold);
+            // Centrar horizontalmente y verticalmente
+            pauseTitle.setPosition(
+                (1280.f - pauseTitle.getLocalBounds().width) / 2.f,
+                (720.f - pauseTitle.getLocalBounds().height) / 2.f - 50.f
+            );
+            window.draw(pauseTitle);
+
+            // Texto de instrucción "Presiona P para continuar"
+            sf::Text resumeText("Presiona P para continuar", menuFont, 20);
+            resumeText.setFillColor(sf::Color(200, 200, 200));
+            resumeText.setPosition(
+                (1280.f - resumeText.getLocalBounds().width) / 2.f,
+                (720.f - resumeText.getLocalBounds().height) / 2.f + 50.f
+            );
+            window.draw(resumeText);
         }
 
         // --- Mostrar INVENTARIO (esquina superior izquierda) ---

@@ -1,5 +1,7 @@
 #include "Art.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 Art::Art(float startX, float startY) 
     : x(startX), y(startY),
@@ -337,3 +339,46 @@ float Art::calcularDistanciaAlPunto(const sf::Vector2f& punto) const {
 
 // Los métodos cargarSprites y setPosicion se mantienen iguales...
 // [Mantén el código original de estos métodos]
+void Art::cargarSprites(
+    const std::string& quietoAbajoPath,
+    const std::string& quietoArribaPath,
+    const std::string& quietoIzquierdaPath,
+    const std::string& quietoDerechaPath,
+    const std::vector<std::string>& caminarAbajoPaths,
+    const std::vector<std::string>& caminarArribaPaths,
+    const std::vector<std::string>& caminarIzquierdaPaths,
+    const std::vector<std::string>& caminarDerechaPaths
+) {
+    // Cargar texturas base
+    quietoAbajo.loadFromFile(quietoAbajoPath);
+    quietoArriba.loadFromFile(quietoArribaPath);
+    quietoIzquierda.loadFromFile(quietoIzquierdaPath);
+    quietoDerecha.loadFromFile(quietoDerechaPath);
+
+    // Cargar frames de caminar
+    caminarAbajo.clear();
+    for (const auto& p : caminarAbajoPaths) {
+        sf::Texture t; t.loadFromFile(p); caminarAbajo.push_back(t);
+    }
+    caminarArriba.clear();
+    for (const auto& p : caminarArribaPaths) {
+        sf::Texture t; t.loadFromFile(p); caminarArriba.push_back(t);
+    }
+    caminarIzquierda.clear();
+    for (const auto& p : caminarIzquierdaPaths) {
+        sf::Texture t; t.loadFromFile(p); caminarIzquierda.push_back(t);
+    }
+    caminarDerecha.clear();
+    for (const auto& p : caminarDerechaPaths) {
+        sf::Texture t; t.loadFromFile(p); caminarDerecha.push_back(t);
+    }
+
+    // Inicializar sprite con la textura de abajo (por defecto)
+    if (quietoAbajo.getSize().x > 0) sprite.setTexture(quietoAbajo);
+    sprite.setOrigin(sprite.getLocalBounds().width/2.f, sprite.getLocalBounds().height/2.f);
+}
+
+void Art::setPosicion(float nuevaX, float nuevaY) {
+    x = nuevaX; y = nuevaY;
+    sprite.setPosition(x, y);
+}
