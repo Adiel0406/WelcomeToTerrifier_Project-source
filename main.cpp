@@ -242,6 +242,17 @@ int main() {
 
     art.setVelocidad(100.0f);  // Un poco más lento que el jugador
     art.setRangoDeteccion(400.0f);  // Rango de detección amplio
+    art.setDistanciaUmbral(20.0f);
+    art.setPatrullaCiclica(true);
+
+    if (!art.cargarWaypointsDesdeArchivo("assets/waypoints_art.txt")) {
+    // Si falla, crear waypoints manualmente
+    
+    art.agregarWaypoint(300, 300, 2.0);  // Espera 2 segundos
+    art.agregarWaypoint(500, 300, 1.5);  // Espera 1.5 segundos
+    art.agregarWaypoint(500, 500, 3.0);  // Espera 3 segundos
+    art.agregarWaypoint(300, 500, 2.0);  // Espera 2 segundos
+}
 
     //---------------------------------------------
     //                 SHADER DE LUZ

@@ -1,5 +1,7 @@
 #include "Art.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 Art::Art(float startX, float startY) 
     : x(startX), y(startY),
@@ -15,9 +17,7 @@ Art::Art(float startX, float startY)
       distanciaUmbral(15.0f),
       temporizadorEspera(0.0f),
       esperando(false),
-      patrullaCiclica(true),
-      posicionInicial(startX, startY),
-      waypointInicioPersecucion(0)
+      patrullaCiclica(true)
 {
     // Crear sprite básico
     sf::Texture tex;
@@ -31,33 +31,18 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
     // Calcular distancia al jugador
     float distanciaAlJugador = calcularDistancia(playerX, playerY);
     
-    // Máquina de estados
-    switch (estadoActual) {
-        case PATRULLANDO:
-            if (distanciaAlJugador <= rangoDeteccion) {
-                estadoActual = PERSEGUIR;
-                waypointInicioPersecucion = waypointActual; // Guardar posición actual
-            } else {
-                actualizarPatrulla(deltaTime);
-            }
-            break;
-            
-        case PERSEGUIR:
-            if (distanciaAlJugador > rangoDeteccion * 1.5f) { // Mayor umbral para dejar de perseguir
-                estadoActual = REGRESANDO;
-            } else {
-                actualizarPersecucion(deltaTime, playerX, playerY);
-            }
-            break;
-            
-        case REGRESANDO:
-            if (calcularDistanciaAlPunto(posicionInicial) < distanciaUmbral) {
-                estadoActual = PATRULLANDO;
-                waypointActual = waypointInicioPersecucion;
-            } else {
-                actualizarRegreso(deltaTime);
-            }
-            break;
+    // Cambiar estado según distancia
+    if (distanciaAlJugador <= rangoDeteccion) {
+        estadoActual = PERSEGUIR;
+    } else {
+        estadoActual = PATRULLANDO;
+    }
+    
+    // Actualizar comportamiento según estado
+    if (estadoActual == PERSEGUIR) {
+        actualizarPersecucion(deltaTime, playerX, playerY);
+    } else {
+        actualizarPatrulla(deltaTime);
     }
     
     // Actualizar animación
@@ -105,30 +90,12 @@ void Art::actualizarPatrulla(float deltaTime) {
     
     // Si llegó al waypoint
     if (distancia <= distanciaUmbral) {
-        if (wp.tiempoEspera > 0) {
-            esperando = true;
-            temporizadorEspera = wp.tiempoEspera;
-        }
+        // Iniciar espera
+        esperando = true;
+        temporizadorEspera = wp.tiempoEspera;
         
-        // Ejecutar acción si existe
-        if (!wp.accion.empty()) {
-            ejecutarAccionWaypoint(wp.accion);
-        }
-        
-        // Si no tiene tiempo de espera, pasar inmediatamente al siguiente
-        if (wp.tiempoEspera <= 0) {
-            waypointActual++;
-            if (waypointActual >= waypoints.size()) {
-                if (patrullaCiclica) {
-                    waypointActual = 0;
-                } else {
-                    caminando = false;
-                    return;
-                }
-            }
-        }
-        
-        caminando = (wp.tiempoEspera <= 0); // Seguir caminando si no espera
+        // Mantener el sprite quieto con la dirección actual
+        caminando = false;
         return;
     }
     
@@ -150,18 +117,12 @@ void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
         float dirX = diffX / distancia;
         float dirY = diffY / distancia;
         
-        x += dirX * velocidad * 1.2f * deltaTime; // 20% más rápido al perseguir
-        y += dirY * velocidad * 1.2f * deltaTime;
+        x += dirX * velocidad * 1.3f * deltaTime; // 20% más rápido al perseguir
+        y += dirY * velocidad * 1.3f * deltaTime;
         caminando = true;
     } else {
         caminando = false;
     }
-}
-
-void Art::actualizarRegreso(float deltaTime) {
-    // Regresar a la posición inicial (o al waypoint donde empezó la persecución)
-    moverHaciaPunto(posicionInicial.x, posicionInicial.y, deltaTime);
-    caminando = true;
 }
 
 void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
@@ -181,24 +142,26 @@ void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
     }
 }
 
-void Art::ejecutarAccionWaypoint(const std::string& accion) {
-    // Aquí puedes implementar diferentes acciones
-    if (accion == "mirar_izquierda") {
-        direccionActual = IZQUIERDA;
-    } else if (accion == "mirar_derecha") {
-        direccionActual = DERECHA;
-    } else if (accion == "mirar_arriba") {
-        direccionActual = ARRIBA;
-    } else if (accion == "mirar_abajo") {
-        direccionActual = ABAJO;
+void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
+    float diffX = targetX - x;
+    float diffY = targetY - y;
+    float distancia = std::sqrt(diffX * diffX + diffY * diffY);
+    
+    // Actualizar dirección visual
+    actualizarDireccion(diffX, diffY);
+    
+    if (distancia > 0) {
+        float dirX = diffX / distancia;
+        float dirY = diffY / distancia;
+        
+        x += dirX * velocidad * deltaTime;
+        y += dirY * velocidad * deltaTime;
     }
-    // Puedes agregar más acciones como sonidos, cambiar animación, etc.
 }
 
-// ==================== MÉTODOS DE WAYPOINTS ====================
 
-void Art::agregarWaypoint(float x, float y, float tiempoEspera, const std::string& accion) {
-    waypoints.emplace_back(x, y, tiempoEspera, accion);
+void Art::agregarWaypoint(float x, float y, float tiempoEspera) {
+    waypoints.emplace_back(x, y, tiempoEspera);
 }
 
 void Art::limpiarWaypoints() {
@@ -228,8 +191,7 @@ bool Art::cargarWaypointsDesdeArchivo(const std::string& rutaArchivo) {
         }
         
         std::istringstream ss(linea);
-        float x, y, wait = 0.0f;
-        std::string accion = "";
+        float x, y, wait = 2.0f; // Valor por defecto: 2 segundos
         
         // Leer coordenadas
         if (!(ss >> x >> y)) {
@@ -238,15 +200,9 @@ bool Art::cargarWaypointsDesdeArchivo(const std::string& rutaArchivo) {
         }
         
         // Leer tiempo de espera opcional
-        if (ss >> wait) {
-            // Leer acción opcional
-            std::string accionTemp;
-            if (ss >> accionTemp) {
-                accion = accionTemp;
-            }
-        }
+        ss >> wait;
         
-        agregarWaypoint(x, y, wait, accion);
+        agregarWaypoint(x, y, wait);
     }
     
     archivo.close();
@@ -254,15 +210,6 @@ bool Art::cargarWaypointsDesdeArchivo(const std::string& rutaArchivo) {
     return true;
 }
 
-void Art::iniciarPatrullaDesdeWaypoint(size_t indice) {
-    if (indice < waypoints.size()) {
-        waypointActual = indice;
-        esperando = false;
-        temporizadorEspera = 0.0f;
-    }
-}
-
-// ==================== MÉTODOS EXISTENTES (mantener) ====================
 
 void Art::actualizarDireccion(float diffX, float diffY) {
     if (std::abs(diffX) > std::abs(diffY)) {
@@ -335,5 +282,55 @@ float Art::calcularDistanciaAlPunto(const sf::Vector2f& punto) const {
     return std::sqrt(diffX * diffX + diffY * diffY);
 }
 
-// Los métodos cargarSprites y setPosicion se mantienen iguales...
-// [Mantén el código original de estos métodos]
+void Art::cargarSprites(
+    const std::string& quietoAbajoPath,
+    const std::string& quietoArribaPath,
+    const std::string& quietoIzquierdaPath,
+    const std::string& quietoDerechaPath,
+    const std::vector<std::string>& caminarAbajoPaths,
+    const std::vector<std::string>& caminarArribaPaths,
+    const std::vector<std::string>& caminarIzquierdaPaths,
+    const std::vector<std::string>& caminarDerechaPaths)
+{
+    // Cargar sprites QUIETOS (1 por dirección)
+    quietoAbajo.loadFromFile(quietoAbajoPath);
+    quietoArriba.loadFromFile(quietoArribaPath);
+    quietoIzquierda.loadFromFile(quietoIzquierdaPath);
+    quietoDerecha.loadFromFile(quietoDerechaPath);
+    
+    // Cargar animaciones CAMINAR (4 frames por dirección)
+    for (const auto& path : caminarAbajoPaths) {
+        sf::Texture tex;
+        tex.loadFromFile(path);
+        caminarAbajo.push_back(tex);
+    }
+    
+    for (const auto& path : caminarArribaPaths) {
+        sf::Texture tex;
+        tex.loadFromFile(path);
+        caminarArriba.push_back(tex);
+    }
+    
+    for (const auto& path : caminarIzquierdaPaths) {
+        sf::Texture tex;
+        tex.loadFromFile(path);
+        caminarIzquierda.push_back(tex);
+    }
+    
+    for (const auto& path : caminarDerechaPaths) {
+        sf::Texture tex;
+        tex.loadFromFile(path);
+        caminarDerecha.push_back(tex);
+    }
+    
+    // Establecer sprite inicial
+    sprite.setTexture(quietoAbajo);
+    sprite.setOrigin(22.5f, 22.5f);
+}
+
+void Art::setPosicion(float nuevaX, float nuevaY) {     //actualizar posición
+    x = nuevaX;
+    y = nuevaY;
+    sprite.setPosition(x, y);   //sincronizar sprite
+}
+//sin ella no se podria cambiar la posicion de art

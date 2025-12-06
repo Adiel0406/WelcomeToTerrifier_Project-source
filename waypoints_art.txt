@@ -1,0 +1,7 @@
+# Waypoints para Art - Formato simple: X Y [tiempo_espera]
+
+# Ejemplo de patrulla
+300 300 2.0
+500 300 1.5
+500 500 3.0
+300 500 2.0

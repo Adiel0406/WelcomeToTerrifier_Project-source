@@ -14,7 +14,7 @@ private:
     float rangoDeteccion;
 
     //estados
-    enum Estado { PATRULLANDO, PERSEGUIR, REGRESANDO };
+    enum Estado { PATRULLANDO, PERSEGUIR };
     Estado estadoActual;
     
     // Direcciones
@@ -43,7 +43,7 @@ private:
         sf::Vector2f posicion;
         float tiempoEspera;  // Tiempo a esperar en este waypoint
         
-        Waypoint(float x, float y, float wait = 0.0f)
+        Waypoint(float x, float y, float wait = 2.0f)
             : posicion(x, y), tiempoEspera(wait) {}
     };
     
@@ -52,7 +52,7 @@ private:
     float distanciaUmbral;
     float temporizadorEspera;
     bool esperando;
-    bool patrullaCiclica;  // Si vuelve al primer waypoint después del último
+    bool patrullaCiclica;
     
     // Punto de inicio (para regresar después de perseguir)
     sf::Vector2f posicionInicial;
@@ -64,9 +64,7 @@ private:
     void actualizarDireccion(float diffX, float diffY);     //actualiza la dirección según la posición del jugador
     void actualizarPatrulla(float deltaTime);
     void actualizarPersecucion(float deltaTime, float playerX, float playerY);
-    void actualizarRegreso(float deltaTime);
     void moverHaciaPunto(float targetX, float targetY, float deltaTime);
-    void ejecutarAccionWaypoint(const std::string& accion);
 
 public:
     // Constructor
@@ -87,21 +85,33 @@ public:
         const std::vector<std::string>& caminarDerechaPaths   // 4 frames
     );
     
-    void agregarWaypoint(float x, float y, float tiempoEspera = 0.0f);
+    // Sistema de waypoints
+    void agregarWaypoint(float x, float y, float tiempoEspera = 2.0f);
     void limpiarWaypoints();
     bool cargarWaypointsDesdeArchivo(const std::string& rutaArchivo);
-    void establecerPatrullaCiclica(bool ciclico) { patrullaCiclica = ciclico; }
-    void iniciarPatrullaDesdeWaypoint(size_t indice);
-
+    
     // Getters
     float getX() const { return x; }
     float getY() const { return y; }
     sf::Sprite& getSprite() { return sprite; }
+    Estado getEstado() const { return estadoActual; }
+    size_t getWaypointActual() const { return waypointActual; }
+    size_t getTotalWaypoints() const { return waypoints.size(); }
     
     // Setters
     void setPosicion(float nuevaX, float nuevaY);
     void setVelocidad(float nuevaVelocidad) { velocidad = nuevaVelocidad; }
     void setRangoDeteccion(float nuevoRango) { rangoDeteccion = nuevoRango; }
+    void setDistanciaUmbral(float distancia) { distanciaUmbral = distancia; }
+    void setPatrullaCiclica(bool ciclico) { patrullaCiclica = ciclico; }
+    
+    // Para debug
+    sf::Vector2f getWaypointPosition(size_t index) const {
+        if (index < waypoints.size()) {
+            return waypoints[index].posicion;
+        }
+        return sf::Vector2f(0, 0);
+    }
 };
 
 #endif
