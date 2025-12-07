@@ -198,7 +198,8 @@ inline void updateObstacleRects(const std::vector<sf::RectangleShape> &shapes, s
 //Cargar obstáculos desde un archivo de texto
 inline void loadObstaclesFromFile(const std::string &path,
                                   std::vector<sf::RectangleShape> &outShapes,
-                                  std::vector<sf::FloatRect> &outRects)
+                                  std::vector<sf::FloatRect> &outRects,
+                                  bool transparent = false)
 {
     outShapes.clear();
     outRects.clear();
@@ -227,9 +228,11 @@ inline void loadObstaclesFromFile(const std::string &path,
         // Interpretamos las coordenadas del archivo como top-left (x,y).
         s.setOrigin({0.f, 0.f});
         s.setPosition({x,y});
-        s.setFillColor(sf::Color(static_cast<sf::Uint8>(r),
-                                 static_cast<sf::Uint8>(g),
-                                 static_cast<sf::Uint8>(b)));
+        s.setFillColor(
+            transparent ?
+                sf::Color(r, g, b, 0) :      // totalmente transparente
+                sf::Color(r, g, b, 255)      // color original
+        );
         outShapes.push_back(s);
         outRects.push_back(s.getGlobalBounds());
     }

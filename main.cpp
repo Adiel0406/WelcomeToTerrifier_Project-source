@@ -415,9 +415,9 @@ int main() {
     oc::Collider col;
     col.setSize({20.f, 40.f});
     col.setPosition(player.getPosition());
-    col.shape.setFillColor(sf::Color::Cyan);
+    col.shape.setFillColor(sf::Color(0, 0, 0, 0));
 
-    oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects);
+    oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects, true);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -786,7 +786,7 @@ int main() {
         }
         
 
-        //window.draw(screen, &flashlight);
+        window.draw(screen, &flashlight);
 
         //---------------------------------------------
         //              HUD - UI
