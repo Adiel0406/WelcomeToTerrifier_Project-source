@@ -344,17 +344,19 @@ int main() {
     bool artIsHostile = false; // cambiar a true para restaurar persecución hacia el jugador
 
     if (artIsHostile) {
-        art.setVelocidad(100.0f);  // Un poco más lento que el jugador
+        art.setVelocidad(120.0f);  // Un poco más lento que el jugador
         art.setRangoDeteccion(400.0f);  // Rango de detección amplio
-        art.setDistanciaUmbral(20.0f);
-        art.setPatrullaCiclica(true);
+        art.setDistanciaUmbral(25.0f);
+        art.setPatrullaCiclica(false);
+        art.setMemoriaTiempo(7.0f); 
 
         if (!art.cargarWaypointsDesdeArchivo("assets/waypoints_art.txt")) {
             // Si falla, crear waypoints manualmente
-            art.agregarWaypoint(300, 300, 2.0);
-            art.agregarWaypoint(500, 300, 1.5);
-            art.agregarWaypoint(500, 500, 3.0);
-            art.agregarWaypoint(300, 500, 2.0);
+            art.agregarWaypoint(300, 300, 1.5);
+            art.agregarWaypoint(800, 300, 1.0);
+            art.agregarWaypoint(800, 800, 2.0);
+            art.agregarWaypoint(300, 800, 1.5);
+            art.agregarWaypoint(550, 550, 2.5);
         }
     } else {
         // Modo NPC: desactivar detección y generar waypoints aleatorios por todo el mapa
@@ -482,6 +484,8 @@ int main() {
             sf::Vector2f ppos = player.getPosition();
             int bestIdx = -1;
             float bestDistSq = pickupRadius * pickupRadius;
+            sf::Vector2f objetoPosRecogido(0, 0);
+
             for (int i = 0; i < (int)objetos.size(); ++i) {
                 sf::Vector2f op = objetos[i].sprite.getPosition();
                 float dx = op.x - ppos.x;
@@ -490,11 +494,16 @@ int main() {
                 if (d2 < bestDistSq) {
                     bestDistSq = d2;
                     bestIdx = i;
+                    objetoPosRecogido = op;
                 }
             }
             if (bestIdx != -1) {
                 std::string recogido = objetos[bestIdx].nombre;
                 std::cout << "Recogido: " << recogido << "\n";
+
+                if (recogido.find("Llave") == std::string::npos && recogido != "Palanca") {
+                art.marcarRecoleccionObjeto(objetoPosRecogido.x, objetoPosRecogido.y);
+                }
                 // Contar llaves y palanca. Si no es llave ni palanca, aumentar contador especial
                 if (recogido.find("Llave") != std::string::npos) {
                     keyCount++;
@@ -645,7 +654,18 @@ int main() {
             col.velocity = velocity;
             oc::resolveCollisionsAxisSeparated(col, obstaclesRects, dt);
             player.setPosition(col.getPosition());
+            
+            // ============================================
+            // RASTREO  DE MOVIMIENTO DEL JUGADOR
+            // ============================================
+            static float tiempoUltimoRastro = 0.0f;
+            tiempoUltimoRastro += dt;
 
+            // Cada 1.5 segundos, marcar posición si el jugador se mueve
+            if (tiempoUltimoRastro > 1.5f && moving && !escaping && !gameOver && !victory) {
+                art.marcarMovimientoJugador(player.getPosition().x, player.getPosition().y);
+                tiempoUltimoRastro = 0.0f;
+            }
 
             //---------------------------------------------
             //          ACTUALIZAR IA ART

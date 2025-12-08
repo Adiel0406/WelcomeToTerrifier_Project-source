@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector> //para almacenar las texturas de movimiento
 #include <string> //rutas de archivos
+#include <algorithm>
 
 class Art {
 private:
@@ -21,6 +22,24 @@ private:
     enum Direccion { ABAJO, ARRIBA, IZQUIERDA, DERECHA };   //enum convierte las direcciones en numeraciones enteras para que el codigo sea mas legible
     Direccion direccionActual;
     
+    float memoriaTiempo;          // Tiempo que recuerda al jugador
+    sf::Vector2f ultimaPosJugador; // Última posición conocida del jugador
+    bool jugadorVistoRecientemente; // Flag para saber si vio al jugador
+    float tiempoDesdeUltimaVista;  // Contador desde que vio al jugador
+    struct Rastro {
+        sf::Vector2f posicion;
+        float frescura;  // 1.0 (nuevo) a 0.0 (viejo)
+        std::string tipo; // "objeto" o "movimiento"
+        
+        Rastro(float x, float y, const std::string& t) 
+            : posicion(x, y), frescura(1.0f), tipo(t) {}
+    };
+    
+    std::vector<Rastro> rastros;         
+    bool siguiendoRastro;                 
+    sf::Vector2f destinoRastro;           
+    float tiempoEnRastro;  
+
     // Sprites (1 quieto + 4 caminar por cada dirección)
     sf::Texture quietoAbajo;
     sf::Texture quietoArriba;
@@ -67,6 +86,10 @@ private:
     void actualizarPersecucion(float deltaTime, float playerX, float playerY);
     void actualizarRegreso(float deltaTime);
     void moverHaciaPunto(float targetX, float targetY, float deltaTime);
+    void actualizarRastros(float deltaTime);         
+    void seguirRastroMasFresco(float deltaTime);
+    void actualizarMemoria(float deltaTime, float playerX, float playerY);
+    
 
 public:
     // Constructor
@@ -95,6 +118,7 @@ public:
     // Getters
     float getX() const { return x; }
     float getY() const { return y; }
+    float getMemoriaTiempo() const { return memoriaTiempo; }
     sf::Sprite& getSprite() { return sprite; }
     Estado getEstado() const { return estadoActual; }
     size_t getWaypointActual() const { return waypointActual; }
@@ -106,6 +130,10 @@ public:
     void setRangoDeteccion(float nuevoRango) { rangoDeteccion = nuevoRango; }
     void setDistanciaUmbral(float distancia) { distanciaUmbral = distancia; }
     void setPatrullaCiclica(bool ciclico) { patrullaCiclica = ciclico; }
+    void setMemoriaTiempo(float tiempo) { memoriaTiempo = tiempo; }
+    void setInteligenciaBusqueda(bool activar);
+    void marcarRecoleccionObjeto(float x, float y);    
+    void marcarMovimientoJugador(float x, float y);
     
     // Para debug
     sf::Vector2f getWaypointPosition(size_t index) const {

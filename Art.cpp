@@ -9,7 +9,14 @@ Art::Art(float startX, float startY)
       estadoActual(PATRULLANDO), direccionActual(ABAJO), frameActual(0),
       tiempoPorFrame(0.15f), tiempoAnimacion(0.f), caminando(false),
       waypointActual(0), distanciaUmbral(15.f), temporizadorEspera(0.f),
-      esperando(false), patrullaCiclica(true)
+      esperando(false), patrullaCiclica(true),
+      memoriaTiempo(5.0f), // Recuerda al jugador por 5 segundos
+      jugadorVistoRecientemente(false),
+      tiempoDesdeUltimaVista(0.0f),
+      ultimaPosJugador(startX, startY),
+      siguiendoRastro(false),        
+      tiempoEnRastro(0.0f),          
+      destinoRastro(startX, startY)
 {
     sf::Texture tex; tex.create(45,45);
     sprite.setTexture(tex);
@@ -18,25 +25,49 @@ Art::Art(float startX, float startY)
 }
 
 void Art::actualizar(float deltaTime, float playerX, float playerY) {
+    actualizarRastros(deltaTime);
+    
+    // Lógica de detección del jugador
     float distanciaAlJugador = calcularDistancia(playerX, playerY);
-
+    
     if (distanciaAlJugador <= rangoDeteccion) {
         if (estadoActual != PERSEGUIR) {
-            // guardar estado si hace falta
+            ultimaPosJugador = sf::Vector2f(playerX, playerY);
+            jugadorVistoRecientemente = true;
+            tiempoDesdeUltimaVista = 0.0f;
         }
         estadoActual = PERSEGUIR;
+        siguiendoRastro = false; // Dejar de seguir rastros si ve al jugador
     } else {
-        if (estadoActual == PERSEGUIR) estadoActual = REGRESANDO;
+        if (estadoActual == PERSEGUIR) {
+            estadoActual = REGRESANDO;
+            // Marcar última posición como rastro
+            marcarMovimientoJugador(playerX, playerY);
+        }
+        
+        // Si no está siguiendo un rastro, comportamiento normal
+        if (!siguiendoRastro) {
+            switch (estadoActual) {
+                case PATRULLANDO: actualizarPatrulla(deltaTime); break;
+                case REGRESANDO: 
+                    // Ir al último waypoint
+                    if (waypoints.empty()) {
+                        estadoActual = PATRULLANDO;
+                    } else {
+                        actualizarRegreso(deltaTime);
+                    }
+                    break;
+            }
+        }
     }
-
-    switch (estadoActual) {
-        case PATRULLANDO: actualizarPatrulla(deltaTime); break;
-        case PERSEGUIR: actualizarPersecucion(deltaTime, playerX, playerY); break;
-        case REGRESANDO: actualizarRegreso(deltaTime); break;
+    
+    // Si está persiguiendo directamente al jugador
+    if (estadoActual == PERSEGUIR) {
+        actualizarPersecucion(deltaTime, playerX, playerY);
     }
-
+    
     actualizarAnimacion(deltaTime);
-    sprite.setPosition(x,y);
+    sprite.setPosition(x, y);
 }
 
 void Art::actualizarPatrulla(float deltaTime) {
@@ -66,13 +97,30 @@ void Art::actualizarPatrulla(float deltaTime) {
 void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
     float diffX = playerX - x; float diffY = playerY - y;
     float distancia = calcularDistancia(playerX, playerY);
+    ultimaPosJugador = sf::Vector2f(playerX, playerY);
+    // Inteligencia: si el jugador está cerca pero moviéndose rápido, predecir posición
+    float velocidadJugadorEstimada = 200.0f; // Velocidad estimada del jugador
+    float tiempoPrediccion = 0.3f; // Predecir 0.3 segundos adelante
     actualizarDireccion(diffX, diffY);
     if (distancia > 20.f) {
         float dirX = diffX / distancia; float dirY = diffY / distancia;
-        x += dirX * velocidad * 1.3f * deltaTime;
-        y += dirY * velocidad * 1.3f * deltaTime;
+        // Aumentar velocidad si el jugador está lejos
+        float multiplicadorVelocidad = 1.3f;
+        if (distancia > 200.f) { multiplicadorVelocidad = 1.8f; // Corre más si está lejos
+        }
+        x += dirX * velocidad * multiplicadorVelocidad * deltaTime;
+        y += dirY * velocidad * multiplicadorVelocidad * deltaTime;
         caminando = true;
-    } else caminando = false;
+        
+    } else {
+        caminando = false;
+        // Si está muy cerca, intentar rodear
+        if (std::rand() % 100 < 30) { // 30% de probabilidad de moverse lateralmente
+            float angulo = (std::rand() % 360) * 3.14159f / 180.0f;
+            x += std::cos(angulo) * velocidad * 0.5f * deltaTime;
+            y += std::sin(angulo) * velocidad * 0.5f * deltaTime;
+        }
+    }
 }
 
 void Art::actualizarRegreso(float deltaTime) {
@@ -208,3 +256,130 @@ void Art::cargarSprites(const std::string& quietoAbajoPath, const std::string& q
 }
 
 void Art::setPosicion(float nuevaX, float nuevaY){ x=nuevaX; y=nuevaY; sprite.setPosition(x,y); }
+
+void Art::actualizarMemoria(float deltaTime, float playerX, float playerY) {
+    if (jugadorVistoRecientemente) {
+        tiempoDesdeUltimaVista += deltaTime;
+        // Actualizar última posición si el jugador está en rango
+        if (calcularDistancia(playerX, playerY) <= rangoDeteccion * 1.5f) {
+            ultimaPosJugador = sf::Vector2f(playerX, playerY);
+            tiempoDesdeUltimaVista = 0.0f; // Resetear tiempo
+        }
+    }
+}
+
+// ============================================
+// NUEVO SISTEMA DE RASTROS
+// ============================================
+
+void Art::marcarRecoleccionObjeto(float x, float y) {
+    // Crear rastro con prioridad alta
+    rastros.emplace_back(x, y, "objeto");
+    
+    // Si está cerca, empezar a seguir inmediatamente
+    float dist = calcularDistancia(x, y);
+    if (dist < 500.0f && estadoActual != PERSEGUIR) {
+        siguiendoRastro = true;
+        destinoRastro = sf::Vector2f(x, y);
+        estadoActual = REGRESANDO; // Cambiar a modo "investigar"
+    }
+    
+    // Limitar cantidad de rastros
+    if (rastros.size() > 20) {
+        rastros.erase(rastros.begin()); // Eliminar el más viejo
+    }
+}
+
+void Art::marcarMovimientoJugador(float x, float y) {
+    // Solo marcar si no está muy cerca de rastros existentes
+    for (const auto& rastro : rastros) {
+        float dx = rastro.posicion.x - x;
+        float dy = rastro.posicion.y - y;
+        if (std::sqrt(dx*dx + dy*dy) < 100.0f) {
+            return; // Ya hay un rastro cercano
+        }
+    }
+    
+    rastros.emplace_back(x, y, "movimiento");
+    
+    // Limitar cantidad
+    if (rastros.size() > 15) {
+        rastros.erase(rastros.begin());
+    }
+}
+
+void Art::actualizarRastros(float deltaTime) {
+    // Actualizar frescura de rastros (se desvanecen con el tiempo)
+    for (auto& rastro : rastros) {
+        rastro.frescura -= 0.1f * deltaTime; // Se desvanece en 10 segundos
+    }
+    
+    // Eliminar rastros muy viejos
+    rastros.erase(
+        std::remove_if(rastros.begin(), rastros.end(),
+            [](const Rastro& r) { return r.frescura <= 0.0f; }),
+        rastros.end()
+    );
+    
+    // Si no está persiguiendo y hay rastros frescos, seguir uno
+    if (estadoActual != PERSEGUIR && !rastros.empty() && !siguiendoRastro) {
+        // Encontrar el rastro más fresco
+        float mejorFrescura = 0.0f;
+        size_t mejorIndice = 0;
+        
+        for (size_t i = 0; i < rastros.size(); ++i) {
+            // Los objetos recogidos tienen prioridad
+            float bonus = (rastros[i].tipo == "objeto") ? 0.3f : 0.0f;
+            if (rastros[i].frescura + bonus > mejorFrescura) {
+                mejorFrescura = rastros[i].frescura + bonus;
+                mejorIndice = i;
+            }
+        }
+        
+        if (mejorFrescura > 0.3f) { // Solo si es relativamente fresco
+            siguiendoRastro = true;
+            destinoRastro = rastros[mejorIndice].posicion;
+            tiempoEnRastro = 0.0f;
+            estadoActual = REGRESANDO; // Entrar en modo "investigar"
+        }
+    }
+    
+    // Si está siguiendo un rastro
+    if (siguiendoRastro) {
+        tiempoEnRastro += deltaTime;
+        
+        // Calcular distancia al destino del rastro
+        float distancia = calcularDistancia(destinoRastro.x, destinoRastro.y);
+        
+        if (distancia <= distanciaUmbral * 1.5f) { // Un poco más de margen
+            // Llegó al rastro - "investigar" por 2 segundos
+            caminando = false;
+            
+            if (tiempoEnRastro > 2.0f) {
+                siguiendoRastro = false;
+                estadoActual = PATRULLANDO;
+                
+                // Eliminar este rastro ya investigado
+                auto it = std::find_if(rastros.begin(), rastros.end(),
+                    [this](const Rastro& r) {
+                        float dx = r.posicion.x - destinoRastro.x;
+                        float dy = r.posicion.y - destinoRastro.y;
+                        return std::sqrt(dx*dx + dy*dy) < 10.0f;
+                    });
+                if (it != rastros.end()) {
+                    rastros.erase(it);
+                }
+            }
+        } else {
+            // Moverse hacia el rastro
+            moverHaciaPunto(destinoRastro.x, destinoRastro.y, deltaTime);
+            caminando = true;
+        }
+        
+        // Si lleva mucho tiempo buscando (8 seg), abandonar
+        if (tiempoEnRastro > 8.0f) {
+            siguiendoRastro = false;
+            estadoActual = PATRULLANDO;
+        }
+    }
+}
