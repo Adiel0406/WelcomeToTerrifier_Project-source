@@ -206,6 +206,21 @@ int main() {
     float pickupMessageTimer = 0.f;
     const float pickupMessageDuration = 2.0f;
 
+    // Lambda para regenerar objetos en reinicio
+    auto regenerarObjetos = [&]() {
+        objetos = spawner.generarObjetos();
+        for (auto &o : objetos) {
+            o.sprite.setTexture(texturas[o.nombre]);
+            o.sprite.setPosition(o.x, o.y);
+        }
+        // Recalcular totalNonKeyObjects
+        totalNonKeyObjects = 0;
+        for (auto &o : objetos) {
+            if (o.nombre.find("Llave") == std::string::npos && o.nombre != "Palanca") totalNonKeyObjects++;
+        }
+        collectedNonKeyObjects = 0;
+    };
+
     std::vector<sf::Texture>walkDown(4);
     walkDown[0].loadFromFile("assets/sprites/sienna_sprites/WalkDown1.png");
     walkDown[1].loadFromFile("assets/sprites/sienna_sprites/WalkDown2.png");
@@ -253,6 +268,7 @@ int main() {
     float warningTimer = 0.f;
     const float warningWindow = 3.0f; // tiempo para huir tras aparecer la advertencia
     bool gameOver = false;
+    bool victory = false; // estado de victoria
     const float activationRadius = 150.f; // radio para iniciar la secuencia
     const float followRadius = 180.f; // radio en el que el jugador debe permanecer cerca de Art (mayor que activationRadius)
     float proximityLostTimer = 0.f;
@@ -260,6 +276,15 @@ int main() {
     const float instaKillRadius = 40.f; // si el jugador se acerca a esta distancia, comienza el temporizador
     float instaKillTimer = 0.f;
     const float instaKillDelay = 1.5f; // segundos que debe permanecer dentro para morir
+    // Temporizador para evitar reacciones repetidas al quedar atrapado
+    float artStuckTimer = 0.f;
+    
+    // Zona objetivo (convertida a coordenadas de mundo: sumar 300,200 del offset del mapa)
+    const float goalMinX = 1110.f + 300.f; // 1410
+    const float goalMaxX = 1171.f + 300.f; // 1471
+    const float goalMinY = 2238.f + 200.f; // 2438
+    const float goalMaxY = 2277.f + 200.f; // 2477
+    const int objectivesRequired = 10;
 
     // Sistema de pausa e inventario
     bool isPaused = false;
@@ -272,7 +297,7 @@ int main() {
     //---------------------------------------------
     //                 IA ART
     //---------------------------------------------
-    Art art(150.f, 150.f);  // Posición inicial de Art
+    Art art(650.f, 850.f);  // Posición inicial de Art (150+500,150+700)
     
     art.cargarSprites(
         // Sprites QUIETOS (1 por dirección)
@@ -417,11 +442,22 @@ int main() {
     col.setPosition(player.getPosition());
     col.shape.setFillColor(sf::Color(0, 0, 0, 0));
 
+    // Colisionador para Art
+    oc::Collider artCol;
+    artCol.setSize({20.f, 40.f});
+    artCol.setPosition(art.getSprite().getPosition());
+    artCol.shape.setFillColor(sf::Color(0, 0, 0, 0));
+
     oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects, true);
 
     while (window.isOpen()) {
         sf::Event event;
         float dt = clock.restart().asSeconds();
+        // Decrementar cooldown de stuck de Art
+        if (artStuckTimer > 0.f) {
+            artStuckTimer -= dt;
+            if (artStuckTimer < 0.f) artStuckTimer = 0.f;
+        }
 
         sf::Event ev;
         while(window.pollEvent(ev)){
@@ -511,6 +547,16 @@ int main() {
         if (pickupMessageTimer > 0.f) {
             pickupMessageTimer -= dt;
             if (pickupMessageTimer < 0.f) pickupMessageTimer = 0.f;
+        }
+
+        // Verificar condición de victoria: jugador en zona objetivo con 10 objetos recogidos
+        if (!gameOver && !victory) {
+            sf::Vector2f ppos = player.getPosition();
+            if (ppos.x >= goalMinX && ppos.x <= goalMaxX && ppos.y >= goalMinY && ppos.y <= goalMaxY) {
+                if (collectedNonKeyObjects >= objectivesRequired) {
+                    victory = true;
+                }
+            }
         }
 
         // Si NO está en pausa, ejecutar lógica de actualización
@@ -604,7 +650,59 @@ int main() {
             //---------------------------------------------
             //          ACTUALIZAR IA ART
             //---------------------------------------------
+            // Guardar posición anterior de Art
+            sf::Vector2f artPosBefore = art.getSprite().getPosition();
+
+            // Actualizar la IA (esto actualizará la posición interna del sprite)
             art.actualizar(dt, player.getPosition().x, player.getPosition().y);
+
+            // Calcular movimiento (delta) producido por la IA
+            sf::Vector2f artPosAfter = art.getSprite().getPosition();
+            sf::Vector2f artMovement = artPosAfter - artPosBefore;
+
+            // Aplicar colisiones a Art para que respete los obstáculos usando el collider
+            // Colocamos el collider en la posición anterior y le damos la velocidad calculada
+            artCol.setPosition(artPosBefore);
+            if (dt > 0.f) artCol.velocity = artMovement / dt; else artCol.velocity = {0.f, 0.f};
+            oc::resolveCollisionsAxisSeparated(artCol, obstaclesRects, dt);
+            // Si la posición final del collider difiere de la posición esperada, hubo colisión
+            sf::Vector2f artFinalPos = artCol.getPosition();
+            float dxCol = artFinalPos.x - artPosAfter.x;
+            float dyCol = artFinalPos.y - artPosAfter.y;
+            float colDist = std::sqrt(dxCol*dxCol + dyCol*dyCol);
+            const float COLLISION_EPS = 0.5f;
+            if (colDist > COLLISION_EPS) {
+                // Hubo corrección por colisión
+                const float ART_STUCK_COOLDOWN = 0.8f;
+                const float ART_NUDGE = 24.f;
+                if (artStuckTimer <= 0.f) {
+                    // Nudge: retroceder ligeramente en la dirección opuesta al movimiento
+                    sf::Vector2f mv = artMovement;
+                    float mvlen = std::sqrt(mv.x*mv.x + mv.y*mv.y);
+                    sf::Vector2f mvNorm;
+                    if (mvlen > 0.0001f) mvNorm = { mv.x / mvlen, mv.y / mvlen };
+                    else {
+                        // si no hay movimiento, elegir dirección aleatoria
+                        float ang = (static_cast<float>(std::rand()) / RAND_MAX) * 2.f * 3.14159265f;
+                        mvNorm = { std::cos(ang), std::sin(ang) };
+                    }
+                    sf::Vector2f nudgedPos = artFinalPos - mvNorm * ART_NUDGE;
+                    artCol.setPosition(nudgedPos);
+                    // Asegurar que la nueva posición no quede dentro de un obstáculo
+                    oc::resolveCollisionsAxisSeparated(artCol, obstaclesRects, dt);
+                    sf::Vector2f finalAfterNudge = artCol.getPosition();
+                    art.setPosicion(finalAfterNudge.x, finalAfterNudge.y);
+
+                    // Elegir un waypoint lejano aleatorio para evitar volver a la misma habitación
+                    art.invertirDireccion();
+                    artStuckTimer = ART_STUCK_COOLDOWN;
+                } else {
+                    // Si estamos en cooldown, simplemente aplicar la posición final
+                    art.setPosicion(artFinalPos.x, artFinalPos.y);
+                }
+            }
+            // Actualizar la posición real de Art con la resultante del collider
+            art.setPosicion(artFinalPos.x, artFinalPos.y);
 
             // Proximidad inmediata: iniciar temporizador de insta-kill en lugar de matar al instante
             {
@@ -872,6 +970,57 @@ int main() {
             window.setView(view);
         }
 
+        // Si hay victoria, mostrar pantalla y permitir reinicio con R
+        if (victory) {
+            // Vista HUD
+            sf::View screenView = window.getDefaultView();
+            window.setView(screenView);
+
+            sf::RectangleShape overlay(sf::Vector2f(1280.f, 720.f));
+            overlay.setFillColor(sf::Color(0,0,0,200));
+            window.draw(overlay);
+
+            sf::Text vic("¡GANASTE!", menuFont, 96);
+            vic.setFillColor(sf::Color::Green);
+            vic.setStyle(sf::Text::Bold);
+            vic.setPosition((1280.f - vic.getLocalBounds().width)/2.f, (720.f - vic.getLocalBounds().height)/2.f - 40.f);
+            window.draw(vic);
+
+            sf::Text rr("Presiona R para reiniciar", menuFont, 24);
+            rr.setFillColor(sf::Color::White);
+            rr.setPosition((1280.f - rr.getLocalBounds().width)/2.f, (720.f - rr.getLocalBounds().height)/2.f + 60.f);
+            window.draw(rr);
+
+            // Reinicio si presionan R: iniciar nueva partida
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                victory = false;
+                escaping = false;
+                warningShown = false;
+                canFlee = false;
+                warningTimer = 0.f;
+                escapeTimer = 0.f;
+                collectedNonKeyObjects = 0;
+                pickupMessage = "";
+                pickupMessageTimer = 0.f;
+                instaKillTimer = 0.f;
+                proximityLostTimer = 0.f;
+                // Reset posiciones
+                player.setPosition(400.f, 1450.f);
+                art.setPosicion(650.f, 850.f);
+                // Regenerar objetos y reiniciar audios
+                regenerarObjetos();
+                if (menuMusic.getStatus() == sf::Music::Playing) menuMusic.pause();
+                bgMusic.stop(); bgMusic.play();
+                if (chaseLoaded) chaseSound.stop();
+                if (persecucionArtLoaded) persecucionArtSound.stop();
+                keyCount = 0;
+                hasPalanca = false;
+            }
+            // Presentar el frame y saltar al siguiente (sin procesar más)
+            window.display();
+            continue;
+        }
+
         // Si hay Game Over, mostrar pantalla y permitir reinicio con R
         if (gameOver) {
             // Vista HUD
@@ -893,7 +1042,7 @@ int main() {
             rr.setPosition((1280.f - rr.getLocalBounds().width)/2.f, (720.f - rr.getLocalBounds().height)/2.f + 60.f);
             window.draw(rr);
 
-            // Reinicio si presionan R
+            // Reinicio si presionan R: iniciar nueva partida
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
                 gameOver = false;
                 escaping = false;
@@ -904,9 +1053,19 @@ int main() {
                 collectedNonKeyObjects = 0;
                 pickupMessage = "";
                 pickupMessageTimer = 0.f;
+                instaKillTimer = 0.f;
+                proximityLostTimer = 0.f;
                 // Reset posiciones
                 player.setPosition(400.f, 1450.f);
-                art.setPosicion(150.f, 150.f);
+                art.setPosicion(650.f, 850.f);
+                // Regenerar objetos y reiniciar audios
+                regenerarObjetos();
+                if (menuMusic.getStatus() == sf::Music::Playing) menuMusic.pause();
+                bgMusic.stop(); bgMusic.play();
+                if (chaseLoaded) chaseSound.stop();
+                if (persecucionArtLoaded) persecucionArtSound.stop();
+                keyCount = 0;
+                hasPalanca = false;
             }
             // Presentar el frame y saltar al siguiente (sin procesar más)`
             window.display();
@@ -920,6 +1079,20 @@ int main() {
             // Centrar el texto en la parte superior
             msg.setPosition((1280.f - msg.getLocalBounds().width) / 2.f, 100.f);
             window.draw(msg);
+        }
+
+        // Mini-texto "Faltan X objetos" cuando el jugador está en la zona objetivo pero sin suficientes objetos
+        bool inGoalZone = (player.getPosition().x >= goalMinX && player.getPosition().x <= goalMaxX &&
+                           player.getPosition().y >= goalMinY && player.getPosition().y <= goalMaxY);
+        if (inGoalZone && collectedNonKeyObjects < objectivesRequired) {
+            int faltanObjetos = objectivesRequired - collectedNonKeyObjects;
+            std::string faltanText = "Faltan " + std::to_string(faltanObjetos) + " objetos";
+            sf::Text faltanMsg(faltanText, menuFont, 20);
+            faltanMsg.setFillColor(sf::Color::Yellow);
+            faltanMsg.setStyle(sf::Text::Bold);
+            // Mostrar en la parte inferior derecha
+            faltanMsg.setPosition(1280.f - faltanMsg.getLocalBounds().width - 20.f, 680.f - faltanMsg.getLocalBounds().height);
+            window.draw(faltanMsg);
         }
 
         window.display();

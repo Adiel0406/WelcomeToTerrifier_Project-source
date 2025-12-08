@@ -97,6 +97,53 @@ void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
     if (distancia>0.f){ float dirX=diffX/distancia, dirY=diffY/distancia; x += dirX*velocidad*deltaTime; y += dirY*velocidad*deltaTime; }
 }
 
+void Art::invertirDireccion() {
+    if (waypoints.empty()) return;
+
+    // Comportamiento mejorado para evitar quedarse atascado en la misma habitación:
+    // Elegir un waypoint que esté lo más alejado posible de la posición actual.
+    // Si estamos persiguiendo, volvemos a REGRESANDO y apuntamos al waypoint más cercano
+    if (estadoActual == PERSEGUIR) {
+        estadoActual = REGRESANDO;
+        waypointActual = encontrarWaypointMasCercano();
+        esperando = false;
+        return;
+    }
+
+    // Si patrullando o regresando -> seleccionar waypoint lejano
+    sf::Vector2f posActual(x, y);
+    std::vector<size_t> candidatos;
+    const float MIN_DIST = 400.f; // preferir waypoints al menos a esta distancia
+
+    for (size_t i = 0; i < waypoints.size(); ++i) {
+        float dx = waypoints[i].posicion.x - posActual.x;
+        float dy = waypoints[i].posicion.y - posActual.y;
+        float d = std::sqrt(dx*dx + dy*dy);
+        if (d >= MIN_DIST) candidatos.push_back(i);
+    }
+
+    size_t elegido = waypointActual;
+    if (!candidatos.empty()) {
+        // elegir al azar entre candidatos lejanos
+        size_t r = static_cast<size_t>(std::rand()) % candidatos.size();
+        elegido = candidatos[r];
+    } else {
+        // si no hay candidatos, elegir el waypoint más lejano
+        float mejorDist = -1.f;
+        for (size_t i = 0; i < waypoints.size(); ++i) {
+            float dx = waypoints[i].posicion.x - posActual.x;
+            float dy = waypoints[i].posicion.y - posActual.y;
+            float d = std::sqrt(dx*dx + dy*dy);
+            if (d > mejorDist) { mejorDist = d; elegido = i; }
+        }
+    }
+
+    waypointActual = elegido;
+    estadoActual = PATRULLANDO;
+    esperando = false;
+    temporizadorEspera = 0.f;
+}
+
 void Art::agregarWaypoint(float px, float py, float tiempoEspera, const std::string& accion) {
     waypoints.emplace_back(px, py, tiempoEspera, accion);
 }

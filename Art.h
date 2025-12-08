@@ -114,6 +114,9 @@ public:
         }
         return sf::Vector2f(0, 0);
     }
+
+    // Fuerza a Art a cambiar su rumbo (usar tras colisión)
+    void invertirDireccion();
 };
 
 #endif
