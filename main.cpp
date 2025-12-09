@@ -73,6 +73,7 @@ int main() {
     }
 
     bool inMenu = true;
+start_menu:
     while (inMenu) {
         sf::Event me;
         while (window.pollEvent(me)) {
@@ -101,7 +102,7 @@ int main() {
         exitBtn.setFillColor(sf::Color(140,80,80));
 
         // Textos de botones
-        sf::Text playText("Jugar", menuFont, 30);
+            sf::Text playText("Jugar", menuFont, 30);
         playText.setFillColor(sf::Color::White);
         playText.setPosition(playBtn.getPosition().x - playText.getLocalBounds().width/2.f - 5.f,
                              playBtn.getPosition().y - playText.getLocalBounds().height/2.f - 10.f);
@@ -118,7 +119,7 @@ int main() {
         if (exitBtn.getGlobalBounds().contains(mposf)) exitBtn.setFillColor(sf::Color(200,120,120));
 
         // Click handling
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
             if (playBtn.getGlobalBounds().contains(mposf)) {
                 inMenu = false; // iniciar juego
             }
@@ -1006,35 +1007,46 @@ int main() {
             vic.setPosition((1280.f - vic.getLocalBounds().width)/2.f, (720.f - vic.getLocalBounds().height)/2.f - 40.f);
             window.draw(vic);
 
-            sf::Text rr("Presiona R para reiniciar", menuFont, 24);
-            rr.setFillColor(sf::Color::White);
-            rr.setPosition((1280.f - rr.getLocalBounds().width)/2.f, (720.f - rr.getLocalBounds().height)/2.f + 60.f);
-            window.draw(rr);
+            // Botones: Volver al menú principal / Salir del juego
+            float btnW = 360.f, btnH = 70.f;
+            sf::RectangleShape menuBtn({btnW, btnH});
+            menuBtn.setOrigin(btnW/2.f, btnH/2.f);
+            menuBtn.setPosition(1280.f/2.f - 200.f, 720.f/2.f + 60.f);
+            menuBtn.setFillColor(sf::Color(70,120,200));
 
-            // Reinicio si presionan R: iniciar nueva partida
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                victory = false;
-                escaping = false;
-                warningShown = false;
-                canFlee = false;
-                warningTimer = 0.f;
-                escapeTimer = 0.f;
-                collectedNonKeyObjects = 0;
-                pickupMessage = "";
-                pickupMessageTimer = 0.f;
-                instaKillTimer = 0.f;
-                proximityLostTimer = 0.f;
-                // Reset posiciones
-                player.setPosition(400.f, 1450.f);
-                art.setPosicion(650.f, 850.f);
-                // Regenerar objetos y reiniciar audios
-                regenerarObjetos();
-                if (menuMusic.getStatus() == sf::Music::Playing) menuMusic.pause();
-                bgMusic.stop(); bgMusic.play();
-                if (chaseLoaded) chaseSound.stop();
-                if (persecucionArtLoaded) persecucionArtSound.stop();
-                keyCount = 0;
-                hasPalanca = false;
+            sf::RectangleShape quitBtn({btnW, btnH});
+            quitBtn.setOrigin(btnW/2.f, btnH/2.f);
+            quitBtn.setPosition(1280.f/2.f + 200.f, 720.f/2.f + 60.f);
+            quitBtn.setFillColor(sf::Color(140,80,80));
+
+            sf::Text menuText("Volver al menú principal", menuFont, 20);
+            menuText.setFillColor(sf::Color::White);
+            menuText.setPosition(menuBtn.getPosition().x - menuText.getLocalBounds().width/2.f, menuBtn.getPosition().y - menuText.getLocalBounds().height/2.f - 6.f);
+
+            sf::Text quitText("Salir del juego", menuFont, 24);
+            quitText.setFillColor(sf::Color::White);
+            quitText.setPosition(quitBtn.getPosition().x - quitText.getLocalBounds().width/2.f, quitBtn.getPosition().y - quitText.getLocalBounds().height/2.f - 6.f);
+
+            window.draw(menuBtn);
+            window.draw(quitBtn);
+            window.draw(menuText);
+            window.draw(quitText);
+
+            // Manejo de input del ratón (usar coordenadas de pantalla)
+            sf::Vector2i mpos = sf::Mouse::getPosition(window);
+            sf::Vector2f mposf = window.mapPixelToCoords(mpos);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                if (menuBtn.getGlobalBounds().contains(mposf)) {
+                    // Volver al menú principal: detener música de fondo y reproducir la del menú
+                    bgMusic.stop();
+                    if (menuMusic.getStatus() != sf::Music::Playing) menuMusic.play();
+                    inMenu = true;
+                    // Ir al inicio del menú
+                    goto start_menu;
+                }
+                if (quitBtn.getGlobalBounds().contains(mposf)) {
+                    window.close();
+                }
             }
             // Presentar el frame y saltar al siguiente (sin procesar más)
             window.display();
@@ -1057,35 +1069,46 @@ int main() {
             go.setPosition((1280.f - go.getLocalBounds().width)/2.f, (720.f - go.getLocalBounds().height)/2.f - 40.f);
             window.draw(go);
 
-            sf::Text rr("Presiona R para reiniciar", menuFont, 24);
-            rr.setFillColor(sf::Color::White);
-            rr.setPosition((1280.f - rr.getLocalBounds().width)/2.f, (720.f - rr.getLocalBounds().height)/2.f + 60.f);
-            window.draw(rr);
+            // Botones: Volver al menú principal / Salir del juego
+            float btnW = 360.f, btnH = 70.f;
+            sf::RectangleShape menuBtn({btnW, btnH});
+            menuBtn.setOrigin(btnW/2.f, btnH/2.f);
+            menuBtn.setPosition(1280.f/2.f - 200.f, 720.f/2.f + 60.f);
+            menuBtn.setFillColor(sf::Color(70,120,200));
 
-            // Reinicio si presionan R: iniciar nueva partida
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                gameOver = false;
-                escaping = false;
-                warningShown = false;
-                canFlee = false;
-                warningTimer = 0.f;
-                escapeTimer = 0.f;
-                collectedNonKeyObjects = 0;
-                pickupMessage = "";
-                pickupMessageTimer = 0.f;
-                instaKillTimer = 0.f;
-                proximityLostTimer = 0.f;
-                // Reset posiciones
-                player.setPosition(400.f, 1450.f);
-                art.setPosicion(650.f, 850.f);
-                // Regenerar objetos y reiniciar audios
-                regenerarObjetos();
-                if (menuMusic.getStatus() == sf::Music::Playing) menuMusic.pause();
-                bgMusic.stop(); bgMusic.play();
-                if (chaseLoaded) chaseSound.stop();
-                if (persecucionArtLoaded) persecucionArtSound.stop();
-                keyCount = 0;
-                hasPalanca = false;
+            sf::RectangleShape quitBtn({btnW, btnH});
+            quitBtn.setOrigin(btnW/2.f, btnH/2.f);
+            quitBtn.setPosition(1280.f/2.f + 200.f, 720.f/2.f + 60.f);
+            quitBtn.setFillColor(sf::Color(140,80,80));
+
+            sf::Text menuText("Volver al menú principal", menuFont, 20);
+            menuText.setFillColor(sf::Color::White);
+            menuText.setPosition(menuBtn.getPosition().x - menuText.getLocalBounds().width/2.f, menuBtn.getPosition().y - menuText.getLocalBounds().height/2.f - 6.f);
+
+            sf::Text quitText("Salir del juego", menuFont, 24);
+            quitText.setFillColor(sf::Color::White);
+            quitText.setPosition(quitBtn.getPosition().x - quitText.getLocalBounds().width/2.f, quitBtn.getPosition().y - quitText.getLocalBounds().height/2.f - 6.f);
+
+            window.draw(menuBtn);
+            window.draw(quitBtn);
+            window.draw(menuText);
+            window.draw(quitText);
+
+            // Manejo de input del ratón (usar coordenadas de pantalla)
+            sf::Vector2i mpos = sf::Mouse::getPosition(window);
+            sf::Vector2f mposf = window.mapPixelToCoords(mpos);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                if (menuBtn.getGlobalBounds().contains(mposf)) {
+                    // Volver al menú principal: detener música de fondo y reproducir la del menú
+                    bgMusic.stop();
+                    if (menuMusic.getStatus() != sf::Music::Playing) menuMusic.play();
+                    inMenu = true;
+                    // Ir al inicio del menú
+                    goto start_menu;
+                }
+                if (quitBtn.getGlobalBounds().contains(mposf)) {
+                    window.close();
+                }
             }
             // Presentar el frame y saltar al siguiente (sin procesar más)`
             window.display();

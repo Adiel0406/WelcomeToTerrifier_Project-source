@@ -39,6 +39,7 @@ private:
     bool siguiendoRastro;                 
     sf::Vector2f destinoRastro;           
     float tiempoEnRastro;  
+    bool inteligenciaBusqueda = true; // permitir/desactivar uso de rastros
 
     // Sprites (1 quieto + 4 caminar por cada dirección)
     sf::Texture quietoAbajo;

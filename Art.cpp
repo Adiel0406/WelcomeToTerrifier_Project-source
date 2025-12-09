@@ -322,7 +322,7 @@ void Art::actualizarRastros(float deltaTime) {
     );
     
     // Si no está persiguiendo y hay rastros frescos, seguir uno
-    if (estadoActual != PERSEGUIR && !rastros.empty() && !siguiendoRastro) {
+    if (estadoActual != PERSEGUIR && inteligenciaBusqueda && !rastros.empty() && !siguiendoRastro) {
         // Encontrar el rastro más fresco
         float mejorFrescura = 0.0f;
         size_t mejorIndice = 0;
@@ -344,42 +344,54 @@ void Art::actualizarRastros(float deltaTime) {
         }
     }
     
-    // Si está siguiendo un rastro
+    // Si está siguiendo un rastro, delegar a helper
     if (siguiendoRastro) {
-        tiempoEnRastro += deltaTime;
-        
-        // Calcular distancia al destino del rastro
-        float distancia = calcularDistancia(destinoRastro.x, destinoRastro.y);
-        
-        if (distancia <= distanciaUmbral * 1.5f) { // Un poco más de margen
-            // Llegó al rastro - "investigar" por 2 segundos
-            caminando = false;
-            
-            if (tiempoEnRastro > 2.0f) {
-                siguiendoRastro = false;
-                estadoActual = PATRULLANDO;
-                
-                // Eliminar este rastro ya investigado
-                auto it = std::find_if(rastros.begin(), rastros.end(),
-                    [this](const Rastro& r) {
-                        float dx = r.posicion.x - destinoRastro.x;
-                        float dy = r.posicion.y - destinoRastro.y;
-                        return std::sqrt(dx*dx + dy*dy) < 10.0f;
-                    });
-                if (it != rastros.end()) {
-                    rastros.erase(it);
-                }
-            }
-        } else {
-            // Moverse hacia el rastro
-            moverHaciaPunto(destinoRastro.x, destinoRastro.y, deltaTime);
-            caminando = true;
-        }
-        
-        // Si lleva mucho tiempo buscando (8 seg), abandonar
-        if (tiempoEnRastro > 8.0f) {
+        seguirRastroMasFresco(deltaTime);
+    }
+}
+
+void Art::seguirRastroMasFresco(float deltaTime) {
+    tiempoEnRastro += deltaTime;
+
+    // Calcular distancia al destino del rastro
+    float distancia = calcularDistancia(destinoRastro.x, destinoRastro.y);
+
+    if (distancia <= distanciaUmbral * 1.5f) { // Un poco más de margen
+        // Llegó al rastro - "investigar" por 2 segundos
+        caminando = false;
+
+        if (tiempoEnRastro > 2.0f) {
             siguiendoRastro = false;
             estadoActual = PATRULLANDO;
+
+            // Eliminar este rastro ya investigado
+            auto it = std::find_if(rastros.begin(), rastros.end(),
+                [this](const Rastro& r) {
+                    float dx = r.posicion.x - destinoRastro.x;
+                    float dy = r.posicion.y - destinoRastro.y;
+                    return std::sqrt(dx*dx + dy*dy) < 10.0f;
+                });
+            if (it != rastros.end()) {
+                rastros.erase(it);
+            }
         }
+    } else {
+        // Moverse hacia el rastro
+        moverHaciaPunto(destinoRastro.x, destinoRastro.y, deltaTime);
+        caminando = true;
+    }
+
+    // Si lleva mucho tiempo buscando (8 seg), abandonar
+    if (tiempoEnRastro > 8.0f) {
+        siguiendoRastro = false;
+        estadoActual = PATRULLANDO;
+    }
+}
+
+void Art::setInteligenciaBusqueda(bool activar) {
+    inteligenciaBusqueda = activar;
+    if (!activar) {
+        // abandonar rastros si se desactiva
+        siguiendoRastro = false;
     }
 }
