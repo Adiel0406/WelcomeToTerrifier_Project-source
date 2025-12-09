@@ -83,7 +83,7 @@ start_menu:
         window.clear(sf::Color(20,20,30));
 
         // Título
-        sf::Text title("Welcome to Terrifier", menuFont, 48);
+        sf::Text title("Welcome to TERRIFIER", menuFont, 48);
         title.setFillColor(sf::Color::White);
         title.setStyle(sf::Text::Bold);
         title.setPosition((1280 - title.getLocalBounds().width) / 2.f, 140.f);
@@ -513,7 +513,7 @@ start_menu:
                 } else {
                     // Objeto genérico recogido
                         collectedNonKeyObjects++;
-                        pickupMessage = std::to_string(collectedNonKeyObjects) + " de " + std::to_string(totalNonKeyObjects);
+                        pickupMessage = std::to_string(collectedNonKeyObjects) + " de 10";
                     pickupMessageTimer = pickupMessageDuration;
                     // No reproducir aquí: el sonido 'persecucion_art' se controla por distancia
                 }
@@ -1001,7 +1001,7 @@ start_menu:
             overlay.setFillColor(sf::Color(0,0,0,200));
             window.draw(overlay);
 
-            sf::Text vic("¡GANASTE!", menuFont, 96);
+            sf::Text vic("Ganaste ... o ...", menuFont, 96);
             vic.setFillColor(sf::Color::Green);
             vic.setStyle(sf::Text::Bold);
             vic.setPosition((1280.f - vic.getLocalBounds().width)/2.f, (720.f - vic.getLocalBounds().height)/2.f - 40.f);
@@ -1019,11 +1019,11 @@ start_menu:
             quitBtn.setPosition(1280.f/2.f + 200.f, 720.f/2.f + 60.f);
             quitBtn.setFillColor(sf::Color(140,80,80));
 
-            sf::Text menuText("Volver al menú principal", menuFont, 20);
+            sf::Text menuText("Volver", menuFont, 20);
             menuText.setFillColor(sf::Color::White);
             menuText.setPosition(menuBtn.getPosition().x - menuText.getLocalBounds().width/2.f, menuBtn.getPosition().y - menuText.getLocalBounds().height/2.f - 6.f);
 
-            sf::Text quitText("Salir del juego", menuFont, 24);
+            sf::Text quitText("Salir", menuFont, 24);
             quitText.setFillColor(sf::Color::White);
             quitText.setPosition(quitBtn.getPosition().x - quitText.getLocalBounds().width/2.f, quitBtn.getPosition().y - quitText.getLocalBounds().height/2.f - 6.f);
 
@@ -1081,11 +1081,11 @@ start_menu:
             quitBtn.setPosition(1280.f/2.f + 200.f, 720.f/2.f + 60.f);
             quitBtn.setFillColor(sf::Color(140,80,80));
 
-            sf::Text menuText("Volver al menú principal", menuFont, 20);
+            sf::Text menuText("Volver", menuFont, 20);
             menuText.setFillColor(sf::Color::White);
             menuText.setPosition(menuBtn.getPosition().x - menuText.getLocalBounds().width/2.f, menuBtn.getPosition().y - menuText.getLocalBounds().height/2.f - 6.f);
 
-            sf::Text quitText("Salir del juego", menuFont, 24);
+            sf::Text quitText("Salir", menuFont, 24);
             quitText.setFillColor(sf::Color::White);
             quitText.setPosition(quitBtn.getPosition().x - quitText.getLocalBounds().width/2.f, quitBtn.getPosition().y - quitText.getLocalBounds().height/2.f - 6.f);
 
