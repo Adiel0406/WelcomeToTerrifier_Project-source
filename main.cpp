@@ -10,6 +10,7 @@
 #include "israel_collisions.hpp"
 #include "Art.h"
 #include <iostream>
+#include <filesystem>
 
 
 
@@ -1142,4 +1143,125 @@ start_menu:
     }
 
     return 0;
+}
+
+// Crea un collider para un sprite dado
+oc::Collider createColliderForSprite(const sf::Sprite& sprite) {
+    oc::Collider collider;
+    sf::FloatRect bounds = sprite.getGlobalBounds();
+    collider.setSize({bounds.width, bounds.height});
+    collider.setPosition({bounds.left, bounds.top});
+    collider.shape.setFillColor(sf::Color(0, 0, 0, 0)); // invisible
+    return collider;
+}
+
+// Genera muebles aleatorios como obstáculos estáticos
+void generarMueblesConColision(
+    const sf::FloatRect& mapBounds,
+    std::vector<sf::Texture>& mueblesTextures,
+    std::vector<sf::Sprite>& mueblesSprites,
+    std::vector<oc::Collider>& mueblesColliders,
+    std::vector<sf::RectangleShape>& obstaclesShapes,
+    std::vector<sf::FloatRect>& obstaclesRects,
+    int cantidad
+) {
+    mueblesTextures.clear();
+    mueblesSprites.clear();
+    mueblesColliders.clear();
+
+    // --- Crear textura placeholder de "cesped alto" ---
+    static sf::Texture placeholderTex;
+    static bool placeholderCreated = false;
+    if (!placeholderCreated) {
+        sf::Image img;
+        img.create(48, 48, sf::Color(60, 160, 60)); // fondo verde
+        for (unsigned int x = 0; x < 48; ++x) {
+            if (x % 6 == 0) {
+                for (unsigned int y = 0; y < 48; ++y) {
+                    img.setPixel(x, y, sf::Color(30, 100 + rand()%80, 30));
+                }
+            }
+            if (x % 8 == 3) {
+                for (unsigned int y = 24; y < 48; ++y) {
+                    img.setPixel(x, y, sf::Color(20, 80 + rand()%60, 20));
+                }
+            }
+        }
+        placeholderTex.loadFromImage(img);
+        placeholderCreated = true;
+    }
+
+    // Solo cargar texturas de assets/sprites/sprites_muebles
+    std::vector<std::string> mueblesPaths;
+    for (const auto& entry : std::filesystem::directory_iterator("assets/sprites/sprites_muebles")) {
+        if (entry.is_regular_file()) {
+            mueblesPaths.push_back(entry.path().string());
+        }
+    }
+    if (mueblesPaths.empty()) return;
+
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    int intentosMax = 100;
+
+    // Vector de punteros a texturas válidas (para fallback)
+    std::vector<sf::Texture*> validTextures;
+    mueblesTextures.reserve(cantidad + 1); // evitar realocaciones
+
+    for (int i = 0; i < cantidad; ++i) {
+        sf::Texture tex;
+        bool loaded = false;
+        int idx = std::rand() % mueblesPaths.size();
+        loaded = tex.loadFromFile(mueblesPaths[idx]);
+
+        sf::Texture* texPtr = nullptr;
+        if (loaded) {
+            mueblesTextures.push_back(tex);
+            texPtr = &mueblesTextures.back();
+            validTextures.push_back(texPtr);
+        } else if (!validTextures.empty()) {
+            // Usa una textura válida ya cargada
+            texPtr = validTextures[std::rand() % validTextures.size()];
+        } else {
+            // Usa el placeholder
+            texPtr = &placeholderTex;
+        }
+
+        sf::Sprite sprite;
+        sprite.setTexture(*texPtr);
+
+        // Escala aleatoria
+        float scale = 0.7f + 0.6f * (std::rand() / (float)RAND_MAX);
+        sprite.setScale(scale, scale);
+
+        int intentos = 0;
+        bool colocado = false;
+        while (intentos < intentosMax && !colocado) {
+            float x = mapBounds.left + 20 + std::rand() % (int)(mapBounds.width - sprite.getGlobalBounds().width - 40);
+            float y = mapBounds.top + 20 + std::rand() % (int)(mapBounds.height - sprite.getGlobalBounds().height - 40);
+            sprite.setPosition(x, y);
+            sf::FloatRect sprRect = sprite.getGlobalBounds();
+
+            // Verifica superposición con otros muebles y obstáculos
+            bool overlap = false;
+            for (const auto& c : mueblesColliders) {
+                if (c.getBounds().intersects(sprRect)) { overlap = true; break; }
+            }
+            for (const auto& r : obstaclesRects) {
+                if (r.intersects(sprRect)) { overlap = true; break; }
+            }
+            if (!overlap) {
+                colocado = true;
+                mueblesSprites.push_back(sprite);
+                oc::Collider col = createColliderForSprite(sprite);
+                mueblesColliders.push_back(col);
+                sf::RectangleShape shape;
+                shape.setPosition(sprRect.left, sprRect.top);
+                shape.setSize({sprRect.width, sprRect.height});
+                shape.setFillColor(sf::Color(120, 80, 40, 60));
+                obstaclesShapes.push_back(shape);
+                obstaclesRects.push_back(sprRect);
+            }
+            ++intentos;
+        }
+    }
 }
