@@ -12,6 +12,17 @@
 #include <iostream>
 #include <filesystem>
 
+// Prototipo de la función para evitar error de declaración
+void generarMueblesConColision(
+    const sf::FloatRect& mapBounds,
+    std::vector<sf::Texture>& mueblesTextures,
+    std::vector<sf::Sprite>& mueblesSprites,
+    std::vector<oc::Collider>& mueblesColliders,
+    std::vector<sf::RectangleShape>& obstaclesShapes,
+    std::vector<sf::FloatRect>& obstaclesRects,
+    int cantidad
+);
+
 
 
 int main() {
@@ -454,6 +465,22 @@ start_menu:
 
     oc::loadObstaclesFromFile("assets/obstacles.txt", obstaclesShapes, obstaclesRects, true);
 
+    // 1. DECLARA LOS VECTORES DE MUEBLES (después de obstaclesRects, antes del bucle principal)
+    std::vector<sf::Texture> mueblesTextures;
+    std::vector<sf::Sprite> mueblesSprites;
+    std::vector<oc::Collider> mueblesColliders;
+
+    // 2. LLAMA A LA FUNCIÓN PARA GENERAR MUEBLES (después de crear el mapa y mapBounds)
+    generarMueblesConColision(
+        mapBounds,
+        mueblesTextures,
+        mueblesSprites,
+        mueblesColliders,
+        obstaclesShapes,
+        obstaclesRects,
+        75 // cantidad de muebles, ajusta a tu gusto
+    );
+
     while (window.isOpen()) {
         sf::Event event;
         float dt = clock.restart().asSeconds();
@@ -892,9 +919,9 @@ start_menu:
         window.draw(map);
         // Dibujar overlay oscuro solo sobre el área del mapa
         window.draw(screen);
-        
-        window.draw(rec1);
-        
+
+        // 3. DIBUJA LOS MUEBLES ANTES DE LOS OBJETOS Y EL JUGADOR
+        for (auto& m : mueblesSprites) window.draw(m);
 
         // Dibujar colisiones
         for (auto &s : obstaclesShapes) window.draw(s);
