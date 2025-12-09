@@ -418,8 +418,8 @@ start_menu:
     sf::Shader flashlight;
     flashlight.loadFromFile("assets/shaders/light.frag", sf::Shader::Fragment);
 
-    float lightRadius = 250.f;   // RADIO DE LUZ
-    float innerRadius = 5.f;    // TOLERANCIA (zona sin sombra alrededor del jugador)
+    float lightRadius = 1280.f;   // RADIO DE LUZ
+    float innerRadius = 50.f;    // TOLERANCIA (zona sin sombra alrededor del jugador)
     sf::Vector2f lightDir(0.f, 0.f); // Dirección (cambia con WASD)
 
     //---------------------------------------------
@@ -867,6 +867,7 @@ start_menu:
             flashlight.setUniform("lightRadius", lightRadius);
             flashlight.setUniform("innerRadius", innerRadius);
             flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
+
         } // Fin del bloque de no-pausa
 
         //---------------------------------------------
