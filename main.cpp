@@ -419,7 +419,7 @@ start_menu:
     flashlight.loadFromFile("assets/shaders/light.frag", sf::Shader::Fragment);
 
     float lightRadius = 250.f;   // RADIO DE LUZ
-    float innerRadius = 60.f;    // TOLERANCIA (zona sin sombra alrededor del jugador)
+    float innerRadius = 5.f;    // TOLERANCIA (zona sin sombra alrededor del jugador)
     sf::Vector2f lightDir(0.f, 0.f); // Dirección (cambia con WASD)
 
     //---------------------------------------------
@@ -897,7 +897,6 @@ start_menu:
         // Dibujar colisiones
         for (auto &s : obstaclesShapes) window.draw(s);
         col.draw(window);
-        window.draw(player);
         window.draw(art.getSprite());
     
         for(auto& o : objetos){
@@ -906,7 +905,7 @@ start_menu:
         
 
         window.draw(screen, &flashlight);
-
+        window.draw(player);
         //---------------------------------------------
         //              HUD - UI
         //---------------------------------------------
@@ -923,7 +922,7 @@ start_menu:
 
             // Overlay semi-transparente oscuro
             sf::RectangleShape pauseOverlay(sf::Vector2f(1280.f, 720.f));
-            pauseOverlay.setFillColor(sf::Color(0, 0, 0, 150));
+            pauseOverlay.setFillColor(sf::Color(0, 0, 0, 255));
             window.draw(pauseOverlay);
 
             // Texto "PAUSA" centrado en la pantalla
