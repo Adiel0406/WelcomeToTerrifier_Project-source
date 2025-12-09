@@ -34,7 +34,7 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
         if (estadoActual != PERSEGUIR) {
             ultimaPosJugador = sf::Vector2f(playerX, playerY);
             jugadorVistoRecientemente = true;
-            tiempoDesdeUltimaVista = 0.0f;
+            tiempoDesdeUltimaVista = 0.0f;  // resetea el contador de memoria
         }
         estadoActual = PERSEGUIR;
         siguiendoRastro = false; // Dejar de seguir rastros si ve al jugador
@@ -71,13 +71,13 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
 }
 
 void Art::actualizarPatrulla(float deltaTime) {
-    if (waypoints.empty()) { caminando=false; return; }
+    if (waypoints.empty()) { caminando=false; return; } //si no hay waypoints se queda quieto
     if (esperando) {
         temporizadorEspera -= deltaTime;
         if (temporizadorEspera <= 0.f) {
             esperando = false;
-            waypointActual++;
-            if (waypointActual >= waypoints.size()) {
+            waypointActual++;   //avanza al siguiente waypoint
+            if (waypointActual >= waypoints.size()) {   //ciclo de patrulla 
                 if (patrullaCiclica) waypointActual = 0;
                 else { waypointActual = waypoints.size()-1; caminando=false; return; }
             }

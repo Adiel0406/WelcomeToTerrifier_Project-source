@@ -99,7 +99,7 @@ public:
     // Método principal de actualización
     void actualizar(float deltaTime, float playerX, float playerY);
     
-    // Cargar texturas (SILENCIOSO - sin mensajes de consola)
+    // Cargar texturas
     void cargarSprites(
         const std::string& quietoAbajoPath,
         const std::string& quietoArribaPath,
@@ -144,7 +144,7 @@ public:
         return sf::Vector2f(0, 0);
     }
 
-    // Fuerza a Art a cambiar su rumbo (usar tras colisión)
+    // Fuerza a Art a cambiar su rumbo (SE usa tras colisión)
     void invertirDireccion();
 };
 
