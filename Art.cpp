@@ -70,6 +70,7 @@ void Art::actualizar(float deltaTime, float playerX, float playerY) {
     sprite.setPosition(x, y);
 }
 
+// patrulla entre waypoints
 void Art::actualizarPatrulla(float deltaTime) {
     if (waypoints.empty()) { caminando=false; return; } //si no hay waypoints se queda quieto
     if (esperando) {
@@ -85,7 +86,7 @@ void Art::actualizarPatrulla(float deltaTime) {
         caminando = false; return;
     }
 
-    Waypoint& wp = waypoints[waypointActual];
+    Waypoint& wp = waypoints[waypointActual];   //referencia al waypoint actual
     float distancia = calcularDistanciaAlPunto(wp.posicion);
     if (distancia <= distanciaUmbral) {
         esperando = true; temporizadorEspera = wp.tiempoEspera; caminando=false; return;
@@ -94,11 +95,12 @@ void Art::actualizarPatrulla(float deltaTime) {
     caminando = true;
 }
 
+// comportamiento de persecucion del jugador
 void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
     float diffX = playerX - x; float diffY = playerY - y;
     float distancia = calcularDistancia(playerX, playerY);
     ultimaPosJugador = sf::Vector2f(playerX, playerY);
-    // Inteligencia: si el jugador está cerca pero moviéndose rápido, predecir posición
+    // Inteligencia: si el jugador está cerca pero moviéndose rápido, se predice la posicion
     float velocidadJugadorEstimada = 200.0f; // Velocidad estimada del jugador
     float tiempoPrediccion = 0.3f; // Predecir 0.3 segundos adelante
     actualizarDireccion(diffX, diffY);
@@ -114,7 +116,7 @@ void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
         
     } else {
         caminando = false;
-        // Si está muy cerca, intentar rodear
+        // Si está muy cerca, intenta rodear
         if (std::rand() % 100 < 30) { // 30% de probabilidad de moverse lateralmente
             float angulo = (std::rand() % 360) * 3.14159f / 180.0f;
             x += std::cos(angulo) * velocidad * 0.5f * deltaTime;
@@ -123,14 +125,16 @@ void Art::actualizarPersecucion(float deltaTime, float playerX, float playerY) {
     }
 }
 
+// comportamiento de regreso a la ruta de patrullaje
 void Art::actualizarRegreso(float deltaTime) {
-    if (waypoints.empty()) { estadoActual = PATRULLANDO; return; }
+    if (waypoints.empty()) { estadoActual = PATRULLANDO; return; }  // si no hay waypoints vuelve a patrullar
     Waypoint& wp = waypoints[waypointActual];
     float distancia = calcularDistanciaAlPunto(wp.posicion);
     if (distancia <= distanciaUmbral) { estadoActual = PATRULLANDO; esperando=true; temporizadorEspera=wp.tiempoEspera; caminando=false; return; }
     moverHaciaPunto(wp.posicion.x, wp.posicion.y, deltaTime); caminando=true;
 }
 
+// busqueda del waypoint mas cercano a la ubicacion
 size_t Art::encontrarWaypointMasCercano() const {
     if (waypoints.empty()) return 0;
     size_t mejor = 0; float mejorD = calcularDistanciaAlPunto(waypoints[0].posicion);
@@ -148,9 +152,6 @@ void Art::moverHaciaPunto(float targetX, float targetY, float deltaTime) {
 void Art::invertirDireccion() {
     if (waypoints.empty()) return;
 
-    // Comportamiento mejorado para evitar quedarse atascado en la misma habitación:
-    // Elegir un waypoint que esté lo más alejado posible de la posición actual.
-    // Si estamos persiguiendo, volvemos a REGRESANDO y apuntamos al waypoint más cercano
     if (estadoActual == PERSEGUIR) {
         estadoActual = REGRESANDO;
         waypointActual = encontrarWaypointMasCercano();
@@ -158,22 +159,23 @@ void Art::invertirDireccion() {
         return;
     }
 
-    // Si patrullando o regresando -> seleccionar waypoint lejano
+    // si esta patrullando o regresando  selecciona el waypoint mas lejano
     sf::Vector2f posActual(x, y);
     std::vector<size_t> candidatos;
     const float MIN_DIST = 400.f; // preferir waypoints al menos a esta distancia
 
-    for (size_t i = 0; i < waypoints.size(); ++i) {
+    // encuentra waypoints y guarda los posibles
+    for (size_t i = 0; i < waypoints.size(); ++i) { //size_t convierte el entero a su tipo mismo, para indices
         float dx = waypoints[i].posicion.x - posActual.x;
         float dy = waypoints[i].posicion.y - posActual.y;
         float d = std::sqrt(dx*dx + dy*dy);
         if (d >= MIN_DIST) candidatos.push_back(i);
     }
 
-    size_t elegido = waypointActual;
+    size_t elegido = waypointActual; //waypoint por defecto
     if (!candidatos.empty()) {
         // elegir al azar entre candidatos lejanos
-        size_t r = static_cast<size_t>(std::rand()) % candidatos.size();
+        size_t r = static_cast<size_t>(std::rand()) % candidatos.size();    //static convierte los valores aleatorios a tipo size
         elegido = candidatos[r];
     } else {
         // si no hay candidatos, elegir el waypoint más lejano
@@ -193,18 +195,19 @@ void Art::invertirDireccion() {
 }
 
 void Art::agregarWaypoint(float px, float py, float tiempoEspera, const std::string& accion) {
-    waypoints.emplace_back(px, py, tiempoEspera, accion);
+    waypoints.emplace_back(px, py, tiempoEspera, accion);   // emplace_back construye el waypoint directamente en el vector
 }
 
 void Art::limpiarWaypoints(){ waypoints.clear(); waypointActual=0; esperando=false; }
 
+// cargar waypoints desde el archivo de texto
 bool Art::cargarWaypointsDesdeArchivo(const std::string& rutaArchivo){
     std::ifstream archivo(rutaArchivo);
     if(!archivo.is_open()){ std::cerr<<"Error: no se pudo abrir "+rutaArchivo<<std::endl; return false; }
     limpiarWaypoints(); std::string linea; int num=0;
-    while(std::getline(archivo,linea)){
+    while(std::getline(archivo,linea)){ // lee linea por linea
         num++; if(linea.empty()||linea[0]=='#') continue;
-        std::istringstream ss(linea);
+        std::istringstream ss(linea);   //permite extraer la linea mediante >> 
         float px, py; float wait=0.f; std::string accion="";
         if(!(ss>>px>>py)) { std::cerr<<"Error en linea "<<num<<" formato incorrecto\n"; continue; }
         if(!(ss>>wait)) wait=0.f;
@@ -214,11 +217,13 @@ bool Art::cargarWaypointsDesdeArchivo(const std::string& rutaArchivo){
     archivo.close(); std::cout<<"Waypoints cargados: "<<waypoints.size()<<" desde "<<rutaArchivo<<std::endl; return true;
 }
 
+// actualiza la direccion viendo la ppredominancia
 void Art::actualizarDireccion(float diffX, float diffY){
-    if (std::abs(diffX)>std::abs(diffY)) direccionActual = diffX>0?DERECHA:IZQUIERDA;
+    if (std::abs(diffX)>std::abs(diffY)) direccionActual = diffX>0?DERECHA:IZQUIERDA; //funcion ternaria
     else direccionActual = diffY>0?ABAJO:ARRIBA;
 }
 
+// actualiza la animacion de caminata
 void Art::actualizarAnimacion(float deltaTime){
     tiempoAnimacion += deltaTime;
     if (caminando){
@@ -268,67 +273,65 @@ void Art::actualizarMemoria(float deltaTime, float playerX, float playerY) {
     }
 }
 
-// ============================================
-// NUEVO SISTEMA DE RASTROS
-// ============================================
+// sistema de rastros
 
 void Art::marcarRecoleccionObjeto(float x, float y) {
-    // Crear rastro con prioridad alta
+    // crear rastro con prioridad alta
     rastros.emplace_back(x, y, "objeto");
     
-    // Si está cerca, empezar a seguir inmediatamente
+    // si está cerca, empezar a seguir inmediatamente
     float dist = calcularDistancia(x, y);
     if (dist < 500.0f && estadoActual != PERSEGUIR) {
         siguiendoRastro = true;
         destinoRastro = sf::Vector2f(x, y);
-        estadoActual = REGRESANDO; // Cambiar a modo "investigar"
+        estadoActual = REGRESANDO; // cambiar a modo "investigar"
     }
     
-    // Limitar cantidad de rastros
+    // limitar cantidad de rastros
     if (rastros.size() > 20) {
-        rastros.erase(rastros.begin()); // Eliminar el más viejo
+        rastros.erase(rastros.begin()); // eliminar el más viejo
     }
 }
 
 void Art::marcarMovimientoJugador(float x, float y) {
-    // Solo marcar si no está muy cerca de rastros existentes
+    // solo marcar si no está muy cerca de rastros existentes
     for (const auto& rastro : rastros) {
         float dx = rastro.posicion.x - x;
         float dy = rastro.posicion.y - y;
         if (std::sqrt(dx*dx + dy*dy) < 100.0f) {
-            return; // Ya hay un rastro cercano
+            return; // ya hay un rastro cercano
         }
     }
     
     rastros.emplace_back(x, y, "movimiento");
     
-    // Limitar cantidad
+    // limitar cantidad
     if (rastros.size() > 15) {
         rastros.erase(rastros.begin());
     }
 }
 
 void Art::actualizarRastros(float deltaTime) {
-    // Actualizar frescura de rastros (se desvanecen con el tiempo)
+    // actualizar frescura de rastros (se desvanecen con el tiempo)
     for (auto& rastro : rastros) {
-        rastro.frescura -= 0.1f * deltaTime; // Se desvanece en 10 segundos
+        rastro.frescura -= 0.1f * deltaTime; // se desvanece en 10 segundos
     }
     
-    // Eliminar rastros muy viejos
+    // eliminar rastros muy viejos
     rastros.erase(
         std::remove_if(rastros.begin(), rastros.end(),
             [](const Rastro& r) { return r.frescura <= 0.0f; }),
         rastros.end()
     );
     
-    // Si no está persiguiendo y hay rastros frescos, seguir uno
+    // si no está persiguiendo y hay rastros frescos, seguir uno
     if (estadoActual != PERSEGUIR && inteligenciaBusqueda && !rastros.empty() && !siguiendoRastro) {
-        // Encontrar el rastro más fresco
+        // encontrar el rastro más fresco
         float mejorFrescura = 0.0f;
         size_t mejorIndice = 0;
         
         for (size_t i = 0; i < rastros.size(); ++i) {
-            // Los objetos recogidos tienen prioridad
+            // los objetos recogidos tienen prioridad
             float bonus = (rastros[i].tipo == "objeto") ? 0.3f : 0.0f;
             if (rastros[i].frescura + bonus > mejorFrescura) {
                 mejorFrescura = rastros[i].frescura + bonus;
@@ -336,15 +339,15 @@ void Art::actualizarRastros(float deltaTime) {
             }
         }
         
-        if (mejorFrescura > 0.3f) { // Solo si es relativamente fresco
+        if (mejorFrescura > 0.3f) { // solo si es relativamente fresco
             siguiendoRastro = true;
             destinoRastro = rastros[mejorIndice].posicion;
             tiempoEnRastro = 0.0f;
-            estadoActual = REGRESANDO; // Entrar en modo "investigar"
+            estadoActual = REGRESANDO; // entra en modo "investigar"
         }
     }
     
-    // Si está siguiendo un rastro, delegar a helper
+    // si está siguiendo un rastro, busca el mas reciente
     if (siguiendoRastro) {
         seguirRastroMasFresco(deltaTime);
     }
@@ -353,18 +356,18 @@ void Art::actualizarRastros(float deltaTime) {
 void Art::seguirRastroMasFresco(float deltaTime) {
     tiempoEnRastro += deltaTime;
 
-    // Calcular distancia al destino del rastro
+    // calcula distancia al destino del rastro
     float distancia = calcularDistancia(destinoRastro.x, destinoRastro.y);
 
-    if (distancia <= distanciaUmbral * 1.5f) { // Un poco más de margen
-        // Llegó al rastro - "investigar" por 2 segundos
+    if (distancia <= distanciaUmbral * 1.5f) { // un poco más de margen
+        // si llega al rastro investiga por 2 segundos
         caminando = false;
 
         if (tiempoEnRastro > 2.0f) {
             siguiendoRastro = false;
             estadoActual = PATRULLANDO;
 
-            // Eliminar este rastro ya investigado
+            // eliminar este rastro ya investigado
             auto it = std::find_if(rastros.begin(), rastros.end(),
                 [this](const Rastro& r) {
                     float dx = r.posicion.x - destinoRastro.x;
@@ -376,12 +379,12 @@ void Art::seguirRastroMasFresco(float deltaTime) {
             }
         }
     } else {
-        // Moverse hacia el rastro
+        // moverse hacia el rastro
         moverHaciaPunto(destinoRastro.x, destinoRastro.y, deltaTime);
         caminando = true;
     }
 
-    // Si lleva mucho tiempo buscando (8 seg), abandonar
+    // si lleva mucho tiempo buscando (8 seg), abandonar
     if (tiempoEnRastro > 8.0f) {
         siguiendoRastro = false;
         estadoActual = PATRULLANDO;

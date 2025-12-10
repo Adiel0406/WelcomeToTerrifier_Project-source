@@ -1,4 +1,4 @@
-# Waypoints inteligentes para Art - Con memoria y búsqueda
+# Waypoints de Art
 # Formato: X Y tiempo_espera [etiqueta]
 
 # Puntos de control principales
