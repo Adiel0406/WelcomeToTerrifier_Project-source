@@ -27,7 +27,7 @@ void generarMueblesConColision(
 
 int main() {
 
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Welcome to Terrifier (TEST VER.)");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Welcome to TERRIFIER");
     window.setFramerateLimit(60);
 
     sf::RenderTexture lightMask;
