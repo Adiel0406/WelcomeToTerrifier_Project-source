@@ -10,7 +10,29 @@
 #include "israel_collisions.hpp"
 #include "Art.h"
 #include <iostream>
-#include <filesystem>
+#if defined(__has_include)
+    #if __has_include(<filesystem>)
+        #include <filesystem>
+        #if defined(__cpp_lib_filesystem)
+            namespace fs = std::filesystem;
+        #else
+            // header present but library not available; try experimental
+            #if __has_include(<experimental/filesystem>)
+                #include <experimental/filesystem>
+                namespace fs = std::experimental::filesystem;
+            #else
+                #define NO_FILESYSTEM
+            #endif
+        #endif
+    #elif __has_include(<experimental/filesystem>)
+        #include <experimental/filesystem>
+        namespace fs = std::experimental::filesystem;
+    #else
+        #define NO_FILESYSTEM
+    #endif
+#else
+    #define NO_FILESYSTEM
+#endif
 
 // Prototipo de la función para evitar error de declaración
 void generarMueblesConColision(
@@ -88,8 +110,14 @@ int main() {
 start_menu:
     while (inMenu) {
         sf::Event me;
+        bool clickInMenu = false;
+        sf::Vector2f clickPosMenu(0.f,0.f);
         while (window.pollEvent(me)) {
             if (me.type == sf::Event::Closed) return 0;
+            if (me.type == sf::Event::MouseButtonPressed && me.mouseButton.button == sf::Mouse::Left) {
+                clickInMenu = true;
+                clickPosMenu = window.mapPixelToCoords({me.mouseButton.x, me.mouseButton.y});
+            }
         }
 
         window.clear(sf::Color(20,20,30));
@@ -130,12 +158,12 @@ start_menu:
         if (playBtn.getGlobalBounds().contains(mposf)) playBtn.setFillColor(sf::Color(120,120,200));
         if (exitBtn.getGlobalBounds().contains(mposf)) exitBtn.setFillColor(sf::Color(200,120,120));
 
-        // Click handling
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-            if (playBtn.getGlobalBounds().contains(mposf)) {
+        // Click handling (evento)
+        if (clickInMenu) {
+            if (playBtn.getGlobalBounds().contains(clickPosMenu)) {
                 inMenu = false; // iniciar juego
             }
-            if (exitBtn.getGlobalBounds().contains(mposf)) {
+            if (exitBtn.getGlobalBounds().contains(clickPosMenu)) {
                 return 0; // salir
             }
         }
@@ -490,19 +518,21 @@ start_menu:
             if (artStuckTimer < 0.f) artStuckTimer = 0.f;
         }
 
-        sf::Event ev;
-        while(window.pollEvent(ev)){
-            if(ev.type == sf::Event::Closed)
-                window.close();
-        }
+        // manejar eventos (un único loop). También capturamos clicks de ratón para uso en UI
 
         sf::Vector2f movement(0.f, 0.f);
         bool moving = false;
         enum Direction {UP, DOWN, LEFT, RIGHT};
         Direction dir = DOWN;
+        bool clickPressed = false;
+        sf::Vector2f clickPos(0.f, 0.f);
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                clickPressed = true;
+                clickPos = window.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
+            }
         }
         
         
@@ -1060,11 +1090,9 @@ start_menu:
             window.draw(menuText);
             window.draw(quitText);
 
-            // Manejo de input del ratón (usar coordenadas de pantalla)
-            sf::Vector2i mpos = sf::Mouse::getPosition(window);
-            sf::Vector2f mposf = window.mapPixelToCoords(mpos);
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                if (menuBtn.getGlobalBounds().contains(mposf)) {
+            // Manejo de input del ratón por evento (evita múltiples activaciones)
+            if (clickPressed) {
+                if (menuBtn.getGlobalBounds().contains(clickPos)) {
                     // Volver al menú principal: detener música de fondo y reproducir la del menú
                     bgMusic.stop();
                     if (menuMusic.getStatus() != sf::Music::Playing) menuMusic.play();
@@ -1072,7 +1100,7 @@ start_menu:
                     // Ir al inicio del menú
                     goto start_menu;
                 }
-                if (quitBtn.getGlobalBounds().contains(mposf)) {
+                if (quitBtn.getGlobalBounds().contains(clickPos)) {
                     window.close();
                 }
             }
@@ -1122,11 +1150,9 @@ start_menu:
             window.draw(menuText);
             window.draw(quitText);
 
-            // Manejo de input del ratón (usar coordenadas de pantalla)
-            sf::Vector2i mpos = sf::Mouse::getPosition(window);
-            sf::Vector2f mposf = window.mapPixelToCoords(mpos);
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                if (menuBtn.getGlobalBounds().contains(mposf)) {
+            // Manejo de input del ratón por evento (evita múltiples activaciones)
+            if (clickPressed) {
+                if (menuBtn.getGlobalBounds().contains(clickPos)) {
                     // Volver al menú principal: detener música de fondo y reproducir la del menú
                     bgMusic.stop();
                     if (menuMusic.getStatus() != sf::Music::Playing) menuMusic.play();
@@ -1134,11 +1160,11 @@ start_menu:
                     // Ir al inicio del menú
                     goto start_menu;
                 }
-                if (quitBtn.getGlobalBounds().contains(mposf)) {
+                if (quitBtn.getGlobalBounds().contains(clickPos)) {
                     window.close();
                 }
             }
-            // Presentar el frame y saltar al siguiente (sin procesar más)`
+            // Presentar el frame y saltar al siguiente (sin procesar más)
             window.display();
             continue;
         }
@@ -1220,11 +1246,15 @@ void generarMueblesConColision(
 
     // Solo cargar texturas de assets/sprites/sprites_muebles
     std::vector<std::string> mueblesPaths;
-    for (const auto& entry : std::filesystem::directory_iterator("assets/sprites/sprites_muebles")) {
+#ifndef NO_FILESYSTEM
+    for (const auto& entry : fs::directory_iterator("assets/sprites/sprites_muebles")) {
         if (entry.is_regular_file()) {
             mueblesPaths.push_back(entry.path().string());
         }
     }
+#else
+    // No hay soporte filesystem en esta toolchain; no cargamos texturas desde directorio.
+#endif
     if (mueblesPaths.empty()) return;
 
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
