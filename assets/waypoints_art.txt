@@ -1,0 +1,32 @@
+# Waypoints inteligentes para Art - Con memoria y búsqueda
+# Formato: X Y tiempo_espera [etiqueta]
+
+# Puntos de control principales
+400 300 1.5 control_norte
+800 300 1.0 control_este
+400 1000 1.5 control_sur
+800 1000 1.0 control_oeste
+
+# Puntos de emboscada
+350 450 2.0 emboscada1
+850 450 2.0 emboscada2
+350 850 2.0 emboscada3
+850 850 2.0 emboscada4
+
+# Rutas de patrulla entre puntos clave
+600 400 0.5
+600 900 0.5
+450 650 0.8
+750 650 0.8
+
+# Puntos de vigilancia de recursos
+420 720 1.2 vigilancia1
+780 720 1.2 vigilancia2
+500 920 1.5 vigilancia3
+700 920 1.5 vigilancia4
+
+# Puntos de búsqueda aleatoria (para cuando pierde al jugador)
+300 600 0.0 busqueda
+900 600 0.0 busqueda
+300 800 0.0 busqueda
+900 800 0.0 busqueda

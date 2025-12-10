@@ -1036,7 +1036,7 @@ start_menu:
             window.draw(vic);
 
             // Botones: Volver al menú principal / Salir del juego
-            float btnW = 360.f, btnH = 70.f;
+            float btnW = 300.f, btnH = 70.f;
             sf::RectangleShape menuBtn({btnW, btnH});
             menuBtn.setOrigin(btnW/2.f, btnH/2.f);
             menuBtn.setPosition(1280.f/2.f - 200.f, 720.f/2.f + 60.f);
@@ -1098,7 +1098,7 @@ start_menu:
             window.draw(go);
 
             // Botones: Volver al menú principal / Salir del juego
-            float btnW = 360.f, btnH = 70.f;
+            float btnW = 320.f, btnH = 70.f;
             sf::RectangleShape menuBtn({btnW, btnH});
             menuBtn.setOrigin(btnW/2.f, btnH/2.f);
             menuBtn.setPosition(1280.f/2.f - 200.f, 720.f/2.f + 60.f);
@@ -1284,7 +1284,7 @@ void generarMueblesConColision(
                 sf::RectangleShape shape;
                 shape.setPosition(sprRect.left, sprRect.top);
                 shape.setSize({sprRect.width, sprRect.height});
-                shape.setFillColor(sf::Color(120, 80, 40, 60));
+                shape.setFillColor(sf::Color(120, 80, 40, 0));
                 obstaclesShapes.push_back(shape);
                 obstaclesRects.push_back(sprRect);
             }
