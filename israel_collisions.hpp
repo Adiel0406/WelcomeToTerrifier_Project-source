@@ -30,9 +30,6 @@ struct Collider {
         shape.setSize(size);
         // usamos origen centrado para colliders movibles (coincide con muchos sprites)
         shape.setOrigin(size * 0.5f);
-        if (hasSprite && texture) {
-            // no hacemos nada extra aquí
-        }
     }
 
     void setPosition(const sf::Vector2f &pos) {
