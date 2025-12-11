@@ -105,7 +105,7 @@ int main() {
         persecucionArtSound.setLoop(true);
         persecucionArtSound.setVolume(0.f);
     }
-
+    bool draw_tutorial = false;
     bool inMenu = true;
 start_menu:
     while (inMenu) {
@@ -152,6 +152,13 @@ start_menu:
         exitText.setPosition(exitBtn.getPosition().x - exitText.getLocalBounds().width/2.f - 5.f,
                              exitBtn.getPosition().y - exitText.getLocalBounds().height/2.f - 10.f);
 
+        sf::Texture tutScreen; 
+        tutScreen.loadFromFile("assets/instrucciones.png");
+        sf::Sprite tutorialScreen;
+        tutorialScreen.setTexture(tutScreen);
+        tutorialScreen.setPosition(0, 0);
+        
+
         // Hover effect
         sf::Vector2i mp = sf::Mouse::getPosition(window);
         sf::Vector2f mposf = window.mapPixelToCoords(mp);
@@ -161,7 +168,7 @@ start_menu:
         // Click handling (evento)
         if (clickInMenu) {
             if (playBtn.getGlobalBounds().contains(clickPosMenu)) {
-                inMenu = false; // iniciar juego
+                draw_tutorial = true;    
             }
             if (exitBtn.getGlobalBounds().contains(clickPosMenu)) {
                 return 0; // salir
@@ -173,7 +180,19 @@ start_menu:
         window.draw(playText);
         window.draw(exitText);
 
+        if (draw_tutorial){
+            bool waiter = sf::Keyboard::isKeyPressed(sf::Keyboard::Enter);
+            if (waiter){
+                inMenu = false; // iniciar juego
+            }
+        }
+
+        if (draw_tutorial){
+            window.draw(tutorialScreen);    
+        }
+
         window.display();
+
     }
 
     // Al salir del menú: detener música de inicio y reproducir música de fondo
