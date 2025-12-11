@@ -3,24 +3,24 @@
 // y 2) main.cpp (parche mínimo para integrar correctamente la librería de colisiones).
 
 /* ==================== israel_collisions.hpp ==================== */
-
-#pragma once
+//pragma once evita la repeticion de archivos
+#pragma once  
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <string>
 #include <fstream>
-#include <sstream>
+#include <sstream> //procesar lineas de texto
 #include <iostream>
 #include <algorithm>
 #include <cmath>
 
-namespace oc {
+namespace oc { //asigna un namespace
 
 // Struct del Collider
 struct Collider {
     sf::RectangleShape shape; // en caso de no tener sprite
     sf::Sprite sprite;
-    const sf::Texture* texture = nullptr;
+    const sf::Texture* texture = nullptr; //puntero de la textura
     bool hasSprite = false; //puntero no valido
     sf::Vector2f spriteOffset{0.f, 0.f}; //posicion del sprite
     sf::Vector2f velocity{0.f,0.f}; // velocidad del collider (pixels/seg)
@@ -65,27 +65,27 @@ struct Collider {
     // --- Sprite support API ---
 
     void setTexture(const sf::Texture &tex) {
-        texture = &tex;
-        sprite.setTexture(tex);
+        texture = &tex; //guarda el puntero de la textura
+        sprite.setTexture(tex); //aplica la textura al sprite
         hasSprite = true;
-        sf::FloatRect lb = sprite.getLocalBounds();
-        sprite.setOrigin(lb.left + lb.width * 0.5f, lb.top + lb.height * 0.5f);
-        sprite.setPosition(shape.getPosition() + spriteOffset);
+        sf::FloatRect lb = sprite.getLocalBounds(); //limites del sprite 
+        sprite.setOrigin(lb.left + lb.width * 0.5f, lb.top + lb.height * 0.5f); //centro del sprite
+        sprite.setPosition(shape.getPosition() + spriteOffset); //posicion del sprite
     }
 
-    void setSpriteOffset(const sf::Vector2f &offset) {
+    void setSpriteOffset(const sf::Vector2f &offset) { //acomoda el sprite
         spriteOffset = offset;
-        if (hasSprite) sprite.setPosition(shape.getPosition() + spriteOffset);
+        if (hasSprite) sprite.setPosition(shape.getPosition() + spriteOffset); //reacomoda el sprite
     }
 
-    void setSpriteScaleToMatchCollider(bool keepAspect = true) {
+    void setSpriteScaleToMatchCollider(bool keepAspect = true) { //funcion para ajustar el tamaño del sprite al collider
         if (!hasSprite || !texture) return;
-        sf::FloatRect lb = sprite.getLocalBounds();
-        if (lb.width <= 0.f || lb.height <= 0.f) return;
-        sf::Vector2f cs = shape.getSize();
-        float sx = cs.x / lb.width;
+        sf::FloatRect lb = sprite.getLocalBounds(); //variable que obtiene los límites
+        if (lb.width <= 0.f || lb.height <= 0.f) return; //evita las divisiones entre cero
+        sf::Vector2f cs = shape.getSize(); //variable que obtiene el tamaño del collider
+        float sx = cs.x / lb.width; 
         float sy = cs.y / lb.height;
-        if (keepAspect) {
+        if (keepAspect) { //esto para mantener la proporcion del sprite
             float s = std::min(sx, sy);
             sprite.setScale(s, s);
         } else {
@@ -112,7 +112,7 @@ inline sf::FloatRect buildColliderBBFromCenter(const sf::Vector2f &center, const
 // Evita corner-clipping y es robusto frente a rectangulos cuyos origins pueden variar.
 inline void resolveCollisionsAxisSeparated(Collider &moving, const std::vector<sf::FloatRect> &statics, float dt)
 {
-    if (dt <= 0.f) return;
+    if (dt <= 0.f) return; //delta time = tiempo entre frame y frame
 
     // Tamaño y posición central del collider
     sf::Vector2f size = moving.shape.getSize();
