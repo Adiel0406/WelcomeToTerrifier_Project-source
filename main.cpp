@@ -242,7 +242,7 @@ start_menu:
     texturas["LlaveC"] = loadOrPlaceholder("assets/sprites/items_sprites/llave.png");
     texturas["Palanca"] = loadOrPlaceholder("assets/sprites/items_sprites/palanca.png");
 
-    for(int i=1;i<=10;i++){
+    for(int i=1;i<10;i++){
         std::string key = "Objeto" + std::to_string(i);
         std::string path = "assets/sprites/items_sprites/obj" + std::to_string(i) + ".png";
         texturas[key] = loadOrPlaceholder(path);
@@ -590,7 +590,7 @@ start_menu:
                 } else {
                     // Objeto genérico recogido
                         collectedNonKeyObjects++;
-                        pickupMessage = std::to_string(collectedNonKeyObjects) + " de 10";
+                        pickupMessage = std::to_string(collectedNonKeyObjects) + " de 9";
                     pickupMessageTimer = pickupMessageDuration;
                     // No reproducir aquí: el sonido 'persecucion_art' se controla por distancia
                 }
