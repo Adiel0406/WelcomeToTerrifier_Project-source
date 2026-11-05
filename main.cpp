@@ -45,8 +45,6 @@ void generarMueblesConColision(
     int cantidad
 );
 
-
-
 int main() {
 
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Welcome to TERRIFIER");
@@ -946,6 +944,7 @@ start_menu:
             flashlight.setUniform("resolution", sf::Glsl::Vec2(window.getSize().x, window.getSize().y));
 
         } // Fin del bloque de no-pausa
+
 
         //---------------------------------------------
         //              DRAW
